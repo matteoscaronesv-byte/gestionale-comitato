@@ -1,0 +1,27 @@
+APP DEL GESTIONALE PER TELEFONO (iPhone e Android)
+==================================================
+
+Questa cartella contiene il Gestionale del Comitato in versione "app installabile" (PWA).
+Per installarla sui telefoni deve essere pubblicata una sola volta su un indirizzo https.
+La pagina non contiene dati: le pratiche restano nell'archivio Google e si vedono solo con la chiave personale.
+
+1) PUBBLICARE LA CARTELLA (una volta, a cura del Coordinatore)
+   Modo più semplice - Netlify (gratuito):
+   - andare su https://app.netlify.com/drop e creare un account gratuito;
+   - trascinare nella pagina l'intera cartella "App telefono";
+   - si ottiene un indirizzo tipo https://nome-scelto.netlify.app (rinominabile in Site settings).
+   In alternativa: GitHub Pages (repository con questi file, Settings > Pages).
+   Per aggiornare l'app in futuro: ricaricare la cartella nuova nello stesso sito (Deploys > trascina la cartella).
+
+2) INSTALLARE SUL TELEFONO (ogni componente del Direttivo)
+   iPhone: aprire l'indirizzo con SAFARI > pulsante Condividi (quadrato con freccia) > "Aggiungi alla schermata Home".
+   Android: aprire l'indirizzo con CHROME > pulsante "Installa l'app" in alto, oppure menu (⋮) > "Installa app".
+   Al primo avvio inserire l'indirizzo dell'archivio (app web di Apps Script) e la propria chiave personale.
+
+3) FUNZIONAMENTO
+   - Stesse funzioni del gestionale su PC: comunicazioni, segnalazioni del Direttivo, mappa, verbali, PDF.
+   - Senza rete l'app si apre lo stesso e mostra le pratiche già scaricate; le modifiche partono alla prima connessione.
+   - Il PDF generato si apre/scarica con le funzioni del telefono (Condividi, Salva su File).
+   - Gli avvisi di nuovi moduli compaiono quando l'app è aperta; per gli avvisi a app chiusa usare l'e-mail o Telegram del Comitato.
+
+Guida completa con immagini: «Guida-App-telefono-Gestionale-Comitato» (Word e PDF) nella cartella Sistema moduli online.

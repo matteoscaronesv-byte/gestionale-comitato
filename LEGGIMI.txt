@@ -11,7 +11,8 @@ La pagina non contiene dati: le pratiche restano nell'archivio Google e si vedon
    - trascinare nella pagina l'intera cartella "App telefono";
    - si ottiene un indirizzo tipo https://nome-scelto.netlify.app (rinominabile in Site settings).
    In alternativa: GitHub Pages (repository con questi file, Settings > Pages).
-   Per aggiornare l'app in futuro: ricaricare la cartella nuova nello stesso sito (Deploys > trascina la cartella).
+   Per aggiornare l'app in futuro: GitHub > repository > Add file > Upload files > trascinare TUTTI i file
+   di questa cartella (sostituiscono i vecchi) > Commit changes. Dopo 1-2 minuti chiudere e riaprire l'app.
 
 2) INSTALLARE SUL TELEFONO (ogni componente del Direttivo)
    iPhone: aprire l'indirizzo con SAFARI > pulsante Condividi (quadrato con freccia) > "Aggiungi alla schermata Home".
@@ -19,9 +20,12 @@ La pagina non contiene dati: le pratiche restano nell'archivio Google e si vedon
    Al primo avvio inserire l'indirizzo dell'archivio (app web di Apps Script) e la propria chiave personale.
 
 3) FUNZIONAMENTO
+   - Sul telefono (schermo stretto) l'app usa la grafica dedicata: barra in basso con Pratiche, Interni,
+     Nuova (+), Mappa, Impostazioni; schede a riquadri; stato della pratica a caselle; nuovi moduli a passi.
+     Su tablet in orizzontale e PC resta la grafica completa del gestionale.
    - Stesse funzioni del gestionale su PC: comunicazioni, segnalazioni del Direttivo, mappa, verbali, PDF.
    - Senza rete l'app si apre lo stesso e mostra le pratiche già scaricate; le modifiche partono alla prima connessione.
    - Il PDF generato si apre/scarica con le funzioni del telefono (Condividi, Salva su File).
    - Gli avvisi di nuovi moduli compaiono quando l'app è aperta; per gli avvisi a app chiusa usare l'e-mail o Telegram del Comitato.
 
-Guida completa con immagini: «Guida-App-telefono-Gestionale-Comitato» (Word e PDF) nella cartella Sistema moduli online.
+Guida completa: file guida.pdf in questa cartella (si apre anche dall'app: Impostazioni > Guida all'app).

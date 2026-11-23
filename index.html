@@ -1025,6 +1025,25 @@ body.m .mnum .n{display:inline-block;width:28px;height:28px;border-radius:14px;b
 .mlock{display:flex;align-items:center}.mlock .ms{color:#1d6b3a}
 body.m .mset .bottom-actions{flex-direction:column}
 body.m .mset #s_connect{height:54px;font-size:17px;border-radius:12px}
+
+/* firme dei Coordinatori */
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.firma-prev{min-height:90px;border:1px dashed #c9c2ba;border-radius:10px;background:#fff repeating-linear-gradient(0deg,transparent 0 59px,#eee 59px 60px);display:flex;align-items:center;justify-content:center;padding:10px;margin-bottom:10px}
+.firma-prev img{max-width:100%;max-height:140px}
+.row-btns{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.firme-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.firma-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fbf8f6}
+.firma-row .ms{color:#a15c00}.firma-row.ok{background:#f1f8f3;border-color:#cfe6d6}.firma-row.ok .ms{color:#1d6b3a}
+.firma-t{flex:1;display:flex;flex-direction:column;font-size:14px;color:#555}.firma-t b{color:#222;font-size:15px}
+.firma-img{height:46px;max-width:150px;object-fit:contain}
+.accetta{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:#fff7e8;border:1px solid #f0d9a8;font-size:15px}
+.accetta input{width:22px;height:22px;flex:none;margin-top:1px}
+#f_firma_doc{display:inline-flex;align-items:center;gap:6px}
+.warn-t{color:#8a5300}
+body.m .firma-row{flex-wrap:wrap}body.m .firma-t{min-width:60%}body.m .firma-img{margin-left:34px;height:42px}
+.tag-firma{display:inline-block;margin-left:6px;font-size:12px;font-weight:700;color:#fff;background:#a15c00;border-radius:10px;padding:2px 8px;white-space:nowrap}
+.tag-firmato{display:inline-block;margin-left:6px;font-size:12px;color:#1d6b3a;background:#dcf1e3;border-radius:10px;padding:2px 8px;white-space:nowrap}
+.firmabox{background:#fff7e8;border-color:#f0d9a8}
 </style>
 </head>
 <body>
@@ -1048,7 +1067,7 @@ body.m .mset #s_connect{height:54px;font-size:17px;border-radius:12px}
 <main id="main"></main>
 <nav class="mnav" id="mnav" aria-label="Navigazione">
   <button type="button" data-v="cittadini"><span class="mnav-i"><span class="ms" aria-hidden="true">inbox</span><span class="mnav-b" id="mnav-badge" hidden></span></span>Pratiche</button>
-  <button type="button" data-v="interni"><span class="mnav-i"><span class="ms" aria-hidden="true">folder</span></span>Interni</button>
+  <button type="button" data-v="interni"><span class="mnav-i"><span class="ms" aria-hidden="true">folder</span><span class="mnav-b" id="mnav-badge2" hidden></span></span>Interni</button>
   <button type="button" data-v="nuova" class="fab"><span class="mnav-i"><span class="ms" aria-hidden="true">add</span></span>Nuova</button>
   <button type="button" data-v="mappa"><span class="mnav-i"><span class="ms" aria-hidden="true">map</span></span>Mappa</button>
   <button type="button" data-v="settings"><span class="mnav-i"><span class="ms" aria-hidden="true">settings</span></span>Impostazioni</button>
@@ -2070,6 +2089,14 @@ const PDFGEN = (function () {
       sectionTitle("Annotazioni del Comitato", 30);
       note.forEach(n => row(`${n.quando || ""}${n.chi ? " – " + n.chi : ""}`, [val(n.testo)], { shade: HEAD }));
     }
+    if ((meta.firme || []).length || (meta.firmeAttese || []).length) {
+      sectionTitle("Firme dei Coordinatori", 70);
+      for (const x of meta.firme || []) {
+        let img = null; if (x.img) { try { img = await pdf.embedPng(duBytes(x.img)); } catch (e) { } }
+        row(`${x.nome}${x.ruolo ? " – " + x.ruolo : ""}`, [...(img ? [{ img, h: 52 }] : []), val(`Firmato il ${x.quando} con firma grafica nel Gestionale del Comitato, previa dichiarazione «${x.accettazione || "Ho letto il documento e accetto di apporvi la mia firma grafica."}»${x.impronta ? " (impronta del contenuto " + x.impronta + ")" : ""}.`, I, 8, GRAY)], { labBold: true });
+      }
+      for (const n of meta.firmeAttese || []) row(n, [val("In attesa di firma", I, 9, GRAY)], { labBold: true });
+    }
     y -= 14;
     const foot = opts.blank ? (F.group === "cittadini" ? "Modulo da compilare a mano. Consegnarlo al punto di ascolto del Comitato oppure inviarne la scansione a quartierelavagnolacomitato@gmail.com. È possibile compilarlo anche online." : "Modulo da compilare a mano. Il documento va poi registrato nel Gestionale del Comitato.")
       : `Documento generato dal Gestionale del Comitato il ${new Date().toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}${opts.operatore ? " da " + opts.operatore : ""}.`;
@@ -2295,6 +2322,7 @@ const PDFGEN = (function () {
       (installEvt || (/iphone|ipad|ipod/i.test(navigator.userAgent) && !navigator.standalone)) && location.protocol === "https:" && !matchMedia("(display-mode: standalone)").matches
         ? el("section", { class: "sec" }, el("h3", {}, "App sul telefono"), el("button", { type: "button", class: "btn", onclick: () => $("#btn-install").click() }, "📲 Installa l'app")) : null,
       window.APP_PWA ? el("p", { class: "mguide" }, el("a", { href: "guida.pdf", target: "_blank", rel: "noopener" }, ic("help"), "Guida all'app")) : null,
+      !first && connected() && isCoord() ? renderFirma() : null,
       !first && connected() && isCoord() ? renderOperatori() : null,
       first ? null : el("section", { class: "sec" }, el("h3", {}, "Avvisi e dati locali"),
         el("div", { class: "field" }, el("label", { class: "opt single" }, el("input", { type: "checkbox", checked: !!S.settings.desktop, onchange: async e => {
@@ -2309,6 +2337,102 @@ const PDFGEN = (function () {
           S.items = []; S.seen = []; toast("Dati locali cancellati.", "ok"); } }, "Cancella i dati salvati su questo dispositivo"),
           el("p", { class: "hint" }, "Da usare su un computer condiviso, al termine del lavoro.")))].filter(Boolean));
   }
+
+  /* ============================================================ firma grafica dei Coordinatori
+     Caricata una volta (foto o scansione JPEG/PNG): il Gestionale toglie lo sfondo chiaro, ritaglia e la
+     salva nell'archivio come PNG trasparente. Si applica ai documenti con la spunta di accettazione. */
+  async function prepFirma(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("Immagine non leggibile: usa un file JPEG o PNG.")); i.src = url; });
+      const k = Math.min(1, 1400 / im.width, 900 / im.height), w = Math.round(im.width * k), h = Math.round(im.height * k);
+      const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const g = cv.getContext("2d");
+      g.drawImage(im, 0, 0, w, h);
+      const d = g.getImageData(0, 0, w, h), px = d.data;
+      let lumSum = 0; for (let i = 0; i < px.length; i += 4) lumSum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+      const bg = lumSum / (px.length / 4), soglia = Math.min(bg - 45, 190);       // tutto ciò che è vicino al colore del foglio diventa trasparente
+      let x0 = w, y0 = h, x1 = -1, y1 = -1;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4, L = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+        if (L > soglia) { px[i + 3] = 0; continue; }
+        const a = Math.min(1, (soglia - L) / 60); px[i + 3] = Math.round(255 * a);
+        px[i] = Math.round(px[i] * 0.6); px[i + 1] = Math.round(px[i + 1] * 0.6); px[i + 2] = Math.round(px[i + 2] * 0.6 + 40);   // inchiostro più deciso, tendente al blu
+        if (a > 0.3) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      }
+      if (x1 < 0 || (x1 - x0) < 20) throw new Error("Non trovo la firma nell'immagine: fotografala su un foglio bianco, con buona luce.");
+      g.putImageData(d, 0, 0);
+      const pad = 8; x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+      const out = document.createElement("canvas"); const kw = Math.min(1, 700 / (x1 - x0 + 1));
+      out.width = Math.round((x1 - x0 + 1) * kw); out.height = Math.round((y1 - y0 + 1) * kw);
+      out.getContext("2d").drawImage(cv, x0, y0, x1 - x0 + 1, y1 - y0 + 1, 0, 0, out.width, out.height);
+      return out.toDataURL("image/png");
+    } finally { URL.revokeObjectURL(url); }
+  }
+  function renderFirma() {
+    const box = el("section", { class: "sec firma-set" }, el("h3", {}, "La mia firma grafica"),
+      el("p", { class: "hint" }, "Carica una volta sola la foto o la scansione della tua firma (JPEG o PNG, su foglio bianco). Il Gestionale toglie lo sfondo e la conserva nell'archivio del Comitato: la userai per firmare verbali, resoconti e schede con una spunta di accettazione. Quando firmi, gli altri Coordinatori ricevono un avviso per firmare a loro volta."));
+    const body = el("div", {}, el("p", { class: "muted" }, "Carico…")); box.append(body);
+    const draw = (r) => {
+      body.innerHTML = "";
+      const prev = el("div", { class: "firma-prev" }, r.firma ? el("img", { src: r.firma, alt: "La tua firma" }) : el("span", { class: "muted" }, "Nessuna firma caricata"));
+      let nuova = null;
+      const fileIn = el("input", { type: "file", accept: "image/jpeg,image/png", id: "f_firma", class: "vh", onchange: async e => {
+        const f = e.target.files[0]; if (!f) return;
+        try { nuova = await prepFirma(f); prev.innerHTML = ""; prev.append(el("img", { src: nuova, alt: "Anteprima della firma" })); salva.disabled = false; toast("Controlla l'anteprima e premi «Salva la firma».", "ok"); }
+        catch (x) { toast(x.message, "warn"); } finally { e.target.value = ""; }
+      } });
+      const emailIn = el("input", { type: "email", id: "f_email", value: r.email || "", placeholder: "nome@esempio.it", oninput: () => salva.disabled = false });
+      const salva = el("button", { type: "button", class: "btn primary", id: "f_salva", disabled: true, onclick: async () => {
+        try { salva.disabled = true; const x = await api("firma_set", { img: nuova || undefined, email: emailIn.value.trim() }); nuova = null; toast("Firma e recapito salvati nell'archivio.", "ok"); draw(x); }
+        catch (e) { salva.disabled = false; toast(e.message, "warn"); }
+      } }, "Salva la firma");
+      body.append(prev,
+        el("div", { class: "row-btns" }, el("label", { class: "btn", for: "f_firma" }, r.firma ? "Sostituisci l'immagine" : "Carica l'immagine della firma"), fileIn,
+          r.firma ? el("button", { type: "button", class: "link small", onclick: async () => { if (!confirm("Rimuovere la tua firma grafica dall'archivio? I documenti già firmati restano firmati.")) return; try { draw(await api("firma_set", { rimuovi: true })); } catch (e) { toast(e.message, "warn"); } } }, "Rimuovi") : null),
+        el("div", { class: "field" }, el("label", { class: "lab", for: "f_email" }, "E-mail per gli avvisi di firma"), emailIn,
+          el("p", { class: "hint" }, "Qui ricevi la richiesta quando un altro Coordinatore firma un documento.")),
+        el("div", { class: "bottom-actions" }, salva),
+        el("p", { class: "hint" }, "Coordinatori: " + r.coordinatori.map(c => c.nome + (c.firma ? " ✔ firma" : " – firma da caricare") + (c.email ? "" : ", senza e-mail")).join(" · ")));
+    };
+    api("firma_info").then(draw).catch(e => { body.innerHTML = ""; body.append(el("p", { class: "box warnbox" }, e.message)); });
+    return box;
+  }
+
+  /* pannello firme nella scheda di un documento interno */
+  function firmePanel(rec) {
+    const meta = rec.meta || {}, firme = rec.firme || [], me = S.settings.operatore?.nome || "";
+    const nomi = [...new Set([...(meta.coordinatori || []), ...firme.map(x => x.nome)])];
+    const attese = (meta.coordinatori || []).filter(n => !firme.some(x => x.nome === n));
+    const sec = el("section", { class: "sec firme-sec" }, el("h3", {}, "Firme dei Coordinatori"));
+    if (!nomi.length) sec.append(el("p", { class: "muted" }, "Nessun Coordinatore attivo nell'archivio."));
+    sec.append(el("div", { class: "firme-list" }, nomi.map(n => { const x = firme.find(f => f.nome === n);
+      return el("div", { class: "firma-row" + (x ? " ok" : "") }, ic(x ? "check_circle" : "schedule", !!x),
+        el("span", { class: "firma-t" }, el("b", {}, n), x ? `Firmato il ${x.quando}` : "In attesa di firma"),
+        x && rec.firmeImg?.[x.fileId] ? el("img", { class: "firma-img", src: rec.firmeImg[x.fileId], alt: "Firma di " + n }) : null); })));
+    if ((rec.firme_annullate || []).length) sec.append(el("p", { class: "hint" }, "Firme precedenti annullate per modifica del contenuto: " + rec.firme_annullate.map(x => `${x.nome} (${x.annullata})`).join(", ") + "."));
+    if (cur.isNew || !connected()) { sec.append(el("p", { class: "hint" }, cur.isNew ? "Si firma dopo aver salvato il documento nell'archivio." : "Per firmare serve la connessione.")); return sec; }
+    if (isCoord() && attese.includes(me)) {
+      const chk = el("input", { type: "checkbox", id: "f_accetto", onchange: () => btn.disabled = !chk.checked });
+      const btn = el("button", { type: "button", class: "btn primary", id: "f_firma_doc", disabled: true, onclick: async () => {
+        if (cur.dirty) { toast("Salva prima le modifiche, poi firma.", "warn"); return; }
+        btn.disabled = true; status("Firmo il documento…");
+        try { const r = await api("firma", { id: rec.id, accetto: true, version: meta.version });
+          toast(r.attese.length ? `Documento firmato. Avviso inviato a: ${(r.avvisati || []).join(", ") || "nessuno (manca l'e-mail)"}.` : "Documento firmato da tutti i Coordinatori.", "ok");
+          await sync({ quiet: true, keepView: true }); openRecord(rec.id); }
+        catch (e) { btn.disabled = false; toast(e.message, "warn"); if (/carica la tua firma/i.test(e.message)) renderSettings(); }
+        finally { status(); }
+      } }, ic("draw"), "Firma il documento");
+      sec.append(el("label", { class: "opt single accetta" }, chk, " Ho letto il documento e accetto di apporvi la mia firma grafica."), el("div", { class: "row-btns" }, btn));
+    } else if (attese.length && puoInterno(rec.type)) {
+      sec.append(el("div", { class: "row-btns" }, el("button", { type: "button", class: "btn", onclick: async () => {
+        try { const r = await api("firma_richiesta", { id: rec.id }); toast("Richiesta di firma inviata a: " + ((r.avvisati || []).join(", ") || "nessuno (manca l'e-mail)") + ".", "ok"); } catch (e) { toast(e.message, "warn"); } } }, ic("notifications"), "Chiedi la firma ai Coordinatori")));
+    }
+    if (firme.length && puoInterno(rec.type)) sec.append(el("p", { class: "hint warn-t" }, "Il documento è firmato: se ne modifichi il contenuto le firme vengono annullate e andranno ripetute."));
+    sec.append(el("p", { class: "hint" }, "Firma grafica apposta nel Gestionale con dichiarazione di accettazione, data e ora registrate. Non sostituisce la firma digitale qualificata."));
+    return sec;
+  }
+  const canon = (o) => Array.isArray(o) ? "[" + o.map(canon).join(",") + "]" : o && typeof o === "object" ? "{" + Object.keys(o).sort().map(k => JSON.stringify(k) + ":" + canon(o[k])).join(",") + "}" : JSON.stringify(o === undefined ? null : o);
+  const daFirmare = (i) => isCoord() && (i.firmeAttese || []).includes(S.settings.operatore?.nome);
 
   /* Coordinatori: autorizzazioni degli operatori per i documenti interni */
   function renderOperatori() {
@@ -2366,7 +2490,8 @@ const PDFGEN = (function () {
     const tabs = el("div", { class: "tabs", role: "tablist" },
       [["cittadini", "Comunicazioni"], ["direttivo", "✍ Segnala come Direttivo"], ["interni", "Documenti interni"], ["mappa", "🗺 Mappa"], ["cartaceo", "Inserisci modulo cartaceo"]].map(([k, l]) =>
         el("button", { class: "tab" + (S.view === k ? " on" : ""), role: "tab", "aria-selected": S.view === k ? "true" : "false", onclick: () => { S.view = k; renderHome(); } }, l,
-          k === "cittadini" && S.items.filter(i => i.stato === "Nuovo").length ? el("span", { class: "badge new" }, String(S.items.filter(i => i.stato === "Nuovo").length)) : null)));
+          k === "cittadini" && S.items.filter(i => i.stato === "Nuovo").length ? el("span", { class: "badge new" }, String(S.items.filter(i => i.stato === "Nuovo").length)) : null,
+          k === "interni" && S.items.filter(daFirmare).length ? el("span", { class: "badge new", title: "Documenti da firmare" }, "✍ " + S.items.filter(daFirmare).length) : null)));
     main.append(tabs);
     if (!connected()) main.append(el("p", { class: "box" }, "Stai lavorando solo su questo dispositivo: i documenti interni restano qui finché non ti colleghi all'archivio. ", el("button", { class: "link", onclick: () => renderSettings() }, "Collegati")));
     if (S.view === "cittadini") renderCittadini(main);
@@ -2481,7 +2606,7 @@ const PDFGEN = (function () {
         el("thead", {}, el("tr", {}, ["N.", "Tipo", "Data", "Da / Responsabile", "Zona", "Oggetto", "Stato", "Assegnato a"].map(h => el("th", {}, h)))),
         el("tbody", {}, all.map(i => el("tr", { class: i.stato === "Nuovo" ? "is-new" : "", tabindex: "0", onclick: () => openRecord(i.id), onkeydown: e => { if (e.key === "Enter") openRecord(i.id); } },
           el("td", { class: "mono", "data-l": "N." }, i.id.startsWith("LOC-") ? "—" : i.id), el("td", { "data-l": "Tipo" }, FORMS[i.type]?.short || i.type), el("td", { "data-l": "Data" }, String(i.ricevuto || "").slice(0, 10)),
-          el("td", { "data-l": "Da" }, i.nome || "", i.origine === "Direttivo" ? el("span", { class: "tag-dir", title: "Inserita da " + (i.inserito || "un componente del Direttivo") }, "Direttivo") : null), el("td", { "data-l": "Zona" }, i.zona || ""), el("td", { class: "ogg", "data-l": "Oggetto" }, i.oggetto || ""), el("td", { "data-l": "Stato" }, stBadge(i.stato)), el("td", { "data-l": "Assegnata" }, i.assegnato || ""))))));
+          el("td", { "data-l": "Da" }, i.nome || "", i.origine === "Direttivo" ? el("span", { class: "tag-dir", title: "Inserita da " + (i.inserito || "un componente del Direttivo") }, "Direttivo") : null), el("td", { "data-l": "Zona" }, i.zona || ""), el("td", { class: "ogg", "data-l": "Oggetto" }, i.oggetto || ""), el("td", { "data-l": "Stato" }, stBadge(i.stato), daFirmare(i) ? el("span", { class: "tag-firma" }, "Da firmare") : (i.firme || []).length ? el("span", { class: "tag-firmato", title: "Firmato da " + i.firme.join(", ") }, "✔ " + i.firme.length) : null), el("td", { "data-l": "Assegnata" }, i.assegnato || ""))))));
     };
     draw();
   }
@@ -2499,6 +2624,8 @@ const PDFGEN = (function () {
     if (ok.length < ORDER.interno.length) main.append(el("p", { class: "box note-perm" }, "🔒 Verbali del Direttivo, resoconti dei Tavoli e schede progetto possono essere creati e modificati solo dai Coordinatori o dagli operatori che un Coordinatore ha autorizzato. Puoi consultarli e generarne il PDF."));
     const its = S.items.filter(i => FORMS[i.type] && FORMS[i.type].group === "interno");
     const loc = (await localDrafts()).filter(r => FORMS[r.type].group === "interno").map(r => ({ id: r.id, type: r.type, ricevuto: (r.creato || "").slice(0, 10).split("-").reverse().join("/"), stato: "Da sincronizzare", nome: "", zona: "", oggetto: summaryOf(r), sortKey: "9" + r.creato }));
+    const df = its.filter(daFirmare);
+    if (df.length) main.append(el("div", { class: "box firmabox" }, "✍ ", el("b", {}, df.length === 1 ? "1 documento attende la tua firma: " : df.length + " documenti attendono la tua firma: "), df.map((i, k) => [k ? ", " : "", el("button", { class: "link", onclick: () => openRecord(i.id) }, i.id)])));
     main.append(el("div", { class: "cards small" }, ORDER.interno.map(k => el("button", { class: "card" + (S.filters.type === k ? " sel" : ""), onclick: () => { S.filters.type = S.filters.type === k ? "" : k; renderHome(); } },
       el("span", { class: "card-t" }, FORMS[k].short), el("span", { class: "card-s" }, `${its.filter(i => i.type === k).length} in archivio`)))));
     renderTable(main, its, STATI.interno, loc);
@@ -2602,6 +2729,7 @@ const PDFGEN = (function () {
     const secs = formBox.querySelectorAll("section.sec");
     if (citizen && !cur.isNew) formBox.append(att); else formBox.insertBefore(att, secs[secs.length - 1]);
     if (!citizen || cur.isNew) { main.append(panel); }
+    if (!citizen && !cur.isNew) panel.after(firmePanel(rec));
     main.append(actions(true));
     mChrome();
     if (isM()) { main.className = "mmain mrec"; const o = { main, rec, F, meta, citizen, panel, statoSel, formBox, att, subhead: citizen && !cur.isNew ? cur.subheadEl : null }; if (cur.isNew) mWizard(o); else mRecord(o); }
@@ -2674,6 +2802,8 @@ const PDFGEN = (function () {
       toast(connected() ? "Senza connessione: salvato su questo dispositivo, verrà inviato alla prossima sincronizzazione." : "Salvato su questo dispositivo.", "ok");
       return renderRecord();
     }
+    if (F.group === "interno" && (rec.firme || []).length && canon(cur.store.values) !== canon(rec.values || {}) &&
+      !confirm("Il documento è già firmato da " + rec.firme.map(x => x.nome).join(", ") + ". Modificandone il contenuto le firme vengono annullate e andranno ripetute. Salvare comunque?")) return;
     const body = { id: rec.id, version: rec.meta?.version, stato: c.stato, nota: c.nota || undefined,
       riservato: F.group === "cittadini" ? cur.rstore.values : undefined,
       values: (F.group === "interno" || cur.editCitizen) ? cur.store.values : undefined,
@@ -2719,7 +2849,14 @@ const PDFGEN = (function () {
         atts.push(x);
       }
       const meta = { id: cur.isNew ? "" : rec.id, stato: c.stato, ricevuto: rec.meta?.ricevuto, origine: rec.meta?.origine || cur.origine, inserito: rec.inserito_da || (cur.direttivo ? S.settings.operatore?.nome : ""), assegnato: c.assegnato, note: [...(rec.note || []), ...(c.nota ? [{ quando: "nuova", chi: S.settings.operatore?.nome || "", testo: c.nota }] : [])] };
-      const bytes = await PDFGEN.build(F, { values: cur.store.values, sigs: cur.store.sigs, riservato: cur.rstore.values, atts, meta },
+      if (F.group === "interno" && !cur.isNew) { meta.firme = (rec.firme || []).map(x => ({ ...x, img: rec.firmeImg?.[x.fileId] })); meta.firmeAttese = (rec.meta?.coordinatori || []).filter(n => !(rec.firme || []).some(x => x.nome === n)); }
+      const sigs = { ...cur.store.sigs };
+      if (rec.type === "verbale_direttivo" && !sigs.firma && (meta.firme || []).length) {     // il Coordinatore che presiede: usa la sua firma grafica, se ha firmato
+        const pres = String(cur.store.values.presidente || "").toLowerCase();
+        const x = meta.firme.find(f => f.img && pres && pres.includes(f.nome.toLowerCase().split(" ").pop()));
+        if (x) sigs.firma = x.img;
+      }
+      const bytes = await PDFGEN.build(F, { values: cur.store.values, sigs, riservato: cur.rstore.values, atts, meta },
         { operatore: S.settings.operatore?.nome, getBytes: async (a) => a._bytes || (a.data ? b64ToBytes(a.data.split(",")[1]) : a.b64 ? b64ToBytes(a.b64) : null) });
       const who = cur.store.values.cognome || cur.store.values.nome || cur.store.values.titolo || cur.store.values.numero || "";
       const name = `${F.file}_${cur.isNew ? UI.today() : rec.id}${who ? "_" + slug(who) : ""}.pdf`;
@@ -2754,6 +2891,7 @@ const PDFGEN = (function () {
     const nav = $("#mnav"); if (!nav) return;
     nav.querySelectorAll("[data-v]").forEach(b => b.classList.toggle("on", b.dataset.v === (S.view === "settings" ? "settings" : S.lastTab || S.view)));
     const bd = $("#mnav-badge"); if (bd) { bd.textContent = nNew; bd.hidden = !nNew; }
+    const bf = $("#mnav-badge2"), nf = S.items.filter(daFirmare).length; if (bf) { bf.textContent = nf; bf.hidden = !nf; }
     const ms = $("#mstatus"); if (ms) { ms.innerHTML = ""; const on = connected() && S.online;
       ms.append(...[el("span", { class: "dot " + (on ? "on" : "off") }), el("span", {}, connected() ? (S.online ? "Collegato" : "Senza connessione") + (S.lastSync ? " · " + new Date(S.lastSync).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "") : "Solo su questo dispositivo"),
         S.outbox.length ? el("span", { class: "badge new", title: "Modifiche da inviare" }, String(S.outbox.length)) : null,
@@ -2773,7 +2911,7 @@ const PDFGEN = (function () {
         opts.icon ? null : el("span", { class: "mcard-k" }, el("span", { class: "dotc", style: `--c:${colT(i.type)}` }), el("b", {}, F.short || i.type),
           i.origine === "Direttivo" ? el("span", { class: "tag-dir" }, "Direttivo") : null, el("span", { class: "mono" }, i.id.startsWith("LOC-") ? "bozza" : i.id)),
         el("span", { class: "mcard-t" }, i.oggetto || "(senza oggetto)"),
-        el("span", { class: "mcard-s" }, stBadge(i.stato), el("span", {}, [opts.icon ? F.short : i.zona, ddmm(i.ricevuto)].filter(Boolean).join(" · ")))));
+        el("span", { class: "mcard-s" }, stBadge(i.stato), daFirmare(i) ? el("span", { class: "tag-firma" }, "Da firmare") : (i.firme || []).length ? el("span", { class: "tag-firmato" }, "✔ firme " + i.firme.length) : null, el("span", {}, [opts.icon ? F.short : i.zona, ddmm(i.ricevuto)].filter(Boolean).join(" · ")))));
   }
   function mChips(keys, cur0, onPick, allLabel) {
     return el("div", { class: "mchips" }, [["", allLabel || "Tutte"], ...keys.map(k => [k, PLUR[k] || FORMS[k].short])].map(([k, l]) =>
@@ -2815,6 +2953,10 @@ const PDFGEN = (function () {
       : el("div", { class: "mrow off" }, el("span", { class: "mrow-ic" }, ic("lock")), el("span", { class: "mrow-t" }, FORMS[k].name, el("small", {}, "Solo Coordinatori o autorizzati"))))));
     const its = S.items.filter(i => FORMS[i.type] && FORMS[i.type].group === "interno");
     const loc = (await localDrafts()).filter(r => FORMS[r.type].group === "interno").map(r => ({ id: r.id, type: r.type, ricevuto: (r.creato || "").slice(0, 10).split("-").reverse().join("/"), stato: "Da sincronizzare", oggetto: summaryOf(r), sortKey: "9" + r.creato }));
+    const df = its.filter(daFirmare);
+    if (df.length) main.querySelector(".mtitle").after(el("div", { class: "mbanner" }, ic("draw"),
+      el("span", { class: "mbanner-t" }, el("b", {}, df.length === 1 ? "1 documento da firmare" : df.length + " documenti da firmare"), el("span", {}, df[0].oggetto || df[0].id)),
+      el("button", { type: "button", onclick: () => openRecord(df[0].id) }, "Apri")));
     const list = el("div", { class: "mlist" });
     const draw = () => { list.innerHTML = ""; const all = mFilter([...loc, ...its], f);
       if (!all.length) list.append(el("p", { class: "empty" }, "Nessun documento."));
@@ -2869,6 +3011,7 @@ const PDFGEN = (function () {
     const blocks = [];
     if (ris && citizen) { ris.remove(); blocks.push(acc("lock", "Dati riservati del Comitato", ris)); }
     if (hist) { hist.remove(); hist.querySelector(".lab")?.remove(); blocks.push(acc("history", "Cronologia", hist, (rec.note || []).length)); }
+    const fs = main.querySelector(".firme-sec");
     if (citizen && !cur.isNew) {
       if (subhead) subhead.remove();
       const box = el("div", {}, subhead ? subhead.querySelector("button") : null, formBox);
@@ -2879,6 +3022,7 @@ const PDFGEN = (function () {
     } else {
       panel.after(...blocks);
     }
+    if (fs) panel.after(fs);
     // azioni fisse
     main.append(el("div", { class: "mactions" },
       el("button", { type: "button", class: "btn mbtn", onclick: () => makePdf(false) }, ic("picture_as_pdf"), "PDF"),

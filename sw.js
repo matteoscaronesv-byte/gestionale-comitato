@@ -1,7 +1,7 @@
 /* Service worker del Gestionale: rende l'app installabile e utilizzabile senza connessione.
    La pagina viene sempre cercata prima in rete (così gli aggiornamenti arrivano subito) e, se non c'è rete,
    presa dalla copia salvata. Le richieste all'archivio (Google) e le mappe non passano dalla cache. */
-const CACHE = "gestionale-comitato-202611232352";
+const CACHE = "gestionale-comitato-202611240030";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

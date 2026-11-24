@@ -811,6 +811,10 @@ footer.foot{text-align:center;font-size:12px;color:var(--mute);padding:20px 10px
 .leaflet-container{font:13px/1.4 system-ui,sans-serif}
 .leaflet-container a.btn{color:#fff}
 @media (max-width:640px){.geo-map{height:260px}}
+.geo-sw{display:flex;background:#fff;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.35);overflow:hidden}
+.geo-sw button{border:0;background:#fff;color:#333;font:600 13px system-ui,-apple-system,sans-serif;padding:8px 12px;cursor:pointer;min-height:36px}
+.geo-sw button+button{border-left:1px solid #ddd}
+.geo-sw button.on{background:#8b1e1e;color:#fff}
 
 .status{display:flex;align-items:center;gap:6px;font-size:13px;font-family:system-ui,sans-serif;color:#444}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -1044,6 +1048,39 @@ body.m .firma-row{flex-wrap:wrap}body.m .firma-t{min-width:60%}body.m .firma-img
 .tag-firma{display:inline-block;margin-left:6px;font-size:12px;font-weight:700;color:#fff;background:#a15c00;border-radius:10px;padding:2px 8px;white-space:nowrap}
 .tag-firmato{display:inline-block;margin-left:6px;font-size:12px;color:#1d6b3a;background:#dcf1e3;border-radius:10px;padding:2px 8px;white-space:nowrap}
 .firmabox{background:#fff7e8;border-color:#f0d9a8}
+
+/* Excel, eliminazione, cestino */
+.xl-btn{margin-left:auto;white-space:nowrap}
+.mxl{display:flex;align-items:center;justify-content:center;gap:6px;height:48px;border-radius:12px}
+.xl-list{display:flex;flex-direction:column;gap:2px;max-height:45vh;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:#fff}
+.btn.danger{background:#b3261e;border-color:#b3261e;color:#fff}.btn.danger:disabled{opacity:.45}
+.btn.danger-ghost{color:#b3261e;border-color:#e3b6b2;background:#fff}
+.cestino{display:flex;flex-direction:column;gap:8px}.cest-row{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fbf8f6}
+
+/* barra della pratica, fascicolo, Direttivo */
+.recbar{position:sticky;top:var(--hdrh,0px);z-index:4;display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:4px 0 10px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.recbar-t{flex:1;font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn.back-btn{background:#3a1010;border-color:#3a1010;color:#fff;font-weight:600}
+.btn.back-btn:hover{background:#5a1a1a}
+.bottom-actions.sticky .back-btn{margin-right:auto}
+.fasc .timeline{border-left:3px solid #e2d5cf;margin:8px 0 12px 8px;padding-left:14px;display:flex;flex-direction:column;gap:10px}
+.tl-i{position:relative;display:flex;gap:12px;font-size:14.5px}
+.tl-i::before{content:"";position:absolute;left:-21px;top:5px;width:11px;height:11px;border-radius:50%;background:#8b1e1e;border:2px solid #fff;box-shadow:0 0 0 1px #c9b4ac}
+.tl-i.ev::before{background:#1f6fb2}.tl-i.me{background:#fbf3f1;border-radius:6px;padding:2px 6px;margin-left:-6px}
+.tl-d{flex:none;width:84px;font:600 13px system-ui,sans-serif;color:#555;padding-top:1px}
+.tl-b{flex:1;min-width:0}.tl-t{white-space:pre-wrap}.tl-a{display:flex;flex-wrap:wrap;gap:6px;margin:3px 0}
+.tl-b .st{margin-left:4px;font-size:12px}
+.fasc-in{background:#eef4fb;border-color:#c6d8ee}
+.tag-fasc{display:inline-block;margin-left:6px;font-size:12px;color:#1d3f7a;background:#dfe9fb;border-radius:10px;padding:2px 8px;white-space:nowrap}
+.tag-fasc.root{background:#1d3f7a;color:#fff}
+.wide-sheet{max-width:640px}
+.cg-list{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto}
+.cg-row{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;font-size:14px}.cg-row:hover{background:#faf6f4}
+.ev-grid{display:grid;grid-template-columns:1fr 180px;gap:10px}
+.dir-firma{background:#faf7f5}.dir-firma p{margin:6px 0}
+.hist.mod{color:#444}.hist.mod::before{content:"✎ ";color:#1f6fb2}
+.small{font-size:12.5px}
+@media (max-width:700px){.recbar{display:none}.ev-grid{grid-template-columns:1fr}.tl-i{flex-direction:column;gap:0}.tl-d{width:auto}}
 </style>
 </head>
 <body>
@@ -1534,15 +1571,17 @@ const UI = (function () {
     const ro = !!store.readonly;
     switch (f.t) {
       case "text": case "email": case "tel":
-        return el("input", { type: f.t, id: idp, value: v || "", disabled: ro, autocomplete: f.t === "email" ? "email" : f.t === "tel" ? "tel" : "off", oninput: e => set(e.target.value) });
+        return el("input", { type: f.t, id: idp, value: v || "", disabled: ro, maxlength: 500, autocomplete: f.t === "email" ? "email" : f.t === "tel" ? "tel" : f.id === "nome" ? "name" : "off",
+          inputmode: f.t === "email" ? "email" : f.t === "tel" ? "tel" : null, autocapitalize: f.t === "email" ? "off" : null, spellcheck: f.t === "email" ? "false" : null,
+          oninput: e => set(e.target.value), onblur: f.t === "email" ? (e => { const x = e.target.value.trim(); if (x !== e.target.value) { e.target.value = x; set(x); } }) : null });
       case "date":
         return el("input", { type: "date", id: idp, value: v || "", disabled: ro, oninput: e => set(e.target.value) });
-      case "area": { const t = el("textarea", { id: idp, rows: f.rows || 3, disabled: ro, oninput: e => set(e.target.value) }); t.value = v || ""; return t; }
+      case "area": { const t = el("textarea", { id: idp, rows: f.rows || 3, disabled: ro, maxlength: 8000, oninput: e => set(e.target.value) }); t.value = v || ""; return t; }
       case "radio": {
         const box = el("div", { class: "opts" + (f.vertical ? " vertical" : ""), role: "radiogroup", id: idp });
         const nm = "r_" + idp + "_" + Math.random().toString(36).slice(2, 7);
         f.opts.forEach(o => box.append(el("label", { class: "opt" }, el("input", { type: "radio", name: nm, value: o, checked: v === o, disabled: ro, onchange: () => set(o) }), " ", o)));
-        if (!ro) box.append(el("button", { class: "link small", type: "button", onclick: () => { box.querySelectorAll("input").forEach(x => x.checked = false); set(""); } }, "annulla scelta"));
+        if (!ro) box.append(el("button", { class: "link small clear-choice", type: "button", onclick: () => { box.querySelectorAll("input").forEach(x => x.checked = false); set(""); } }, "annulla scelta"));
         return box;
       }
       case "check": {
@@ -1567,21 +1606,33 @@ const UI = (function () {
     /* Sfondi della mappa. Il server di OpenStreetMap (tile.openstreetmap.org) blocca con errore 403 le pagine aperte
        da file o senza indirizzo di provenienza: si usano quindi CARTO (dati OpenStreetMap) ed Esri, con passaggio
        automatico al successivo se uno non risponde. */
+    // sfondi gratuiti: OpenStreetMap (predefinito), satellite Esri con nomi di strade e località, CARTO come riserva
     SFONDI: [
-      { nome: "Stradale", url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", o: { subdomains: "abcd", maxZoom: 20, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a> © <a href=\"https://carto.com/attributions\" target=\"_blank\" rel=\"noopener\">CARTO</a>" } },
-      { nome: "Stradale (Esri)", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", o: { maxZoom: 19, attribution: "Tiles © Esri" } },
-      { nome: "Satellite", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", o: { maxZoom: 19, attribution: "Immagini © Esri, Maxar, Earthstar Geographics" } },
+      { k: "osm", nome: "Mappa", url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", o: { maxZoom: 19, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a>" } },
+      { k: "sat", nome: "Satellite", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", o: { maxZoom: 19, attribution: "Immagini © Esri, Maxar, Earthstar Geographics" },
+        sopra: ["https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}", "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"] },
+      { k: "carto", nome: "Chiara", url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", o: { subdomains: "abcd", maxZoom: 20, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a> © <a href=\"https://carto.com/attributions\" target=\"_blank\" rel=\"noopener\">CARTO</a>" } },
     ],
-    tiles(map) {                       // aggiunge lo sfondo alla mappa, con selettore e ripiego automatico
-      const layers = GEO.SFONDI.map(x => L.tileLayer(x.url, x.o));
-      let cur = 0, ok = 0, err = 0;
-      const watch = (ly, i) => { ly.on("tileload", () => { if (i === cur) ok++; }); ly.on("tileerror", () => { if (i !== cur) return; err++;
-        if (!ok && err >= 3 && cur === 0) { map.removeLayer(layers[0]); cur = 1; ok = 0; err = 0; layers[1].addTo(map); } }); };
-      layers.forEach(watch);
-      layers[0].addTo(map);
-      L.control.layers({ [GEO.SFONDI[0].nome]: layers[0], [GEO.SFONDI[1].nome]: layers[1], [GEO.SFONDI[2].nome]: layers[2] }, null, { position: "topright" }).addTo(map);
-      map.on("baselayerchange", e => { cur = layers.indexOf(e.layer); ok = 0; err = 0; });
-      return layers[0];
+    tiles(map) {                       // sfondo con pulsanti Mappa / Satellite, scelta ricordata, ripiego automatico se il server non risponde
+      const S0 = GEO.SFONDI, groups = S0.map(x => { const base = L.tileLayer(x.url, x.o); return { base, g: L.layerGroup([base, ...(x.sopra || []).map(u => L.tileLayer(u, { maxZoom: 19 }))]) }; });
+      let cur = -1, ok = 0, err = 0;
+      const btns = [];
+      const pick = (i, save) => {
+        if (i === cur) return; if (cur >= 0) map.removeLayer(groups[cur].g);
+        cur = i; ok = 0; err = 0; groups[i].g.addTo(map);
+        btns.forEach((b, j) => b.classList.toggle("on", j === i));
+        if (save) { try { localStorage.setItem("ct-sfondo", S0[i].k); } catch (e) { } }
+      };
+      groups.forEach((x, i) => { x.base.on("tileload", () => { if (i === cur) ok++; }); x.base.on("tileerror", () => { if (i !== cur) return; err++; if (!ok && err >= 3 && i === 0) pick(2); }); });
+      const Ctl = L.Control.extend({ options: { position: "topright" }, onAdd() {
+        const box = L.DomUtil.create("div", "geo-sw"); L.DomEvent.disableClickPropagation(box);
+        [0, 1].forEach(i => { const b = L.DomUtil.create("button", "", box); b.type = "button"; b.textContent = S0[i].nome; b.onclick = (e) => { e.preventDefault(); pick(i, true); }; btns.push(b); });
+        return box; } });
+      new Ctl().addTo(map);
+      let pref = 0; try { pref = Math.max(0, S0.findIndex(x => x.k === localStorage.getItem("ct-sfondo"))); } catch (e) { }
+      if (location.protocol === "file:" && pref === 0) pref = 2;      // aperto come file: OpenStreetMap rifiuta le richieste senza indirizzo di provenienza
+      pick(pref);
+      return groups[pref].base;
     },
     pin: (color, label) => L.divIcon({ className: "pin-wrap", html: `<span class="pin" style="--c:${color || "#8b1e1e"}"><b>${label || ""}</b></span>`, iconSize: [28, 36], iconAnchor: [14, 34], popupAnchor: [0, -30] }),
     fmt: (p) => p && isFinite(p.lat) && isFinite(p.lng) ? `${(+p.lat).toFixed(5)}, ${(+p.lng).toFixed(5)}` : "",
@@ -1737,6 +1788,10 @@ const UI = (function () {
     return box;
   }
 
+  const EXT_MIME = { pdf: "application/pdf", doc: "application/msword", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", odt: "application/vnd.oasis.opendocument.text",
+    xls: "application/vnd.ms-excel", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ods: "application/vnd.oasis.opendocument.spreadsheet", txt: "text/plain", heic: "image/heic", heif: "image/heif", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png" };
+  const SAFE_MIME = /^(image\/(jpeg|png|webp|heic|heif|gif)|application\/pdf|application\/msword|application\/vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet)|application\/vnd\.oasis\.opendocument\.(text|spreadsheet)|application\/vnd\.ms-excel|text\/plain)$/i;
+  const mimeOf = (file) => { const ext = (file.name.match(/\.([a-z0-9]+)$/i) || [])[1]; return (ext && EXT_MIME[ext.toLowerCase()]) || file.type || "application/octet-stream"; };
   /* -------- allegati: store.atts = [{kind:'image'|'pdf'|'other'|'paper', name, mime, title, desc, data(dataURL img) | b64, fileId(server), local:true}] */
   function renderAttachments(store, opts = {}) {
     const RO = opts.readonly !== undefined ? !!opts.readonly : !!store.readonly;
@@ -1773,12 +1828,15 @@ const UI = (function () {
             if (/^image\/(jpeg|png|webp|gif|bmp)$/.test(file.type) || (file.type.startsWith("image/") && !/heic|heif/i.test(file.type))) {
               store.atts.push({ local: true, kind: "image", name: file.name.replace(/\.[^.]+$/, ".jpg"), mime: "image/jpeg", title: base, desc: "", data: await shrinkImage(file) });
             } else {
+              const mime = mimeOf(file);
+              if (opts.onlySafe && !SAFE_MIME.test(mime)) { toast(`«${file.name}»: tipo di file non ammesso. Puoi allegare foto, PDF, documenti Word/LibreOffice o fogli di calcolo.`, "warn"); continue; }
               const buf = new Uint8Array(await file.arrayBuffer());
-              const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
-              store.atts.push({ local: true, kind: isPdf ? "pdf" : "other", name: file.name, mime: isPdf ? "application/pdf" : (file.type || "application/octet-stream"), title: base, desc: "", b64: bytesToB64(buf) });
+              const isPdf = mime === "application/pdf";
+              store.atts.push({ local: true, kind: isPdf ? "pdf" : "other", name: file.name, mime, title: base, desc: "", b64: bytesToB64(buf) });
               if (/heic|heif/i.test(file.type) || /\.hei[cf]$/i.test(file.name)) toast(`«${file.name}» (formato HEIC) sarà conservato come file allegato.`, "warn");
             }
           } catch (err) {
+            if (opts.onlySafe && !SAFE_MIME.test(mimeOf(file))) { toast(`«${file.name}» non leggibile.`, "warn"); continue; }
             const buf = new Uint8Array(await file.arrayBuffer());
             store.atts.push({ local: true, kind: "other", name: file.name, mime: file.type || "application/octet-stream", title: base, desc: "", b64: bytesToB64(buf) });
           }
@@ -1788,7 +1846,7 @@ const UI = (function () {
         draw(); store.onChange && store.onChange();
       };
       const photoIn = el("input", { type: "file", accept: "image/*", multiple: true, hidden: true, onchange: async e => { await add([...e.target.files]); e.target.value = ""; } });
-      const fileIn = el("input", { type: "file", multiple: true, hidden: true, onchange: async e => { await add([...e.target.files]); e.target.value = ""; } });
+      const fileIn = el("input", { type: "file", multiple: true, hidden: true, accept: opts.onlySafe ? ".pdf,.doc,.docx,.odt,.xls,.xlsx,.ods,.txt,image/*" : null, onchange: async e => { await add([...e.target.files]); e.target.value = ""; } });
       sec.append(photoIn, fileIn, el("div", { class: "att-buttons" },
         el("button", { class: "btn", type: "button", onclick: () => photoIn.click() }, "+ Foto"),
         el("button", { class: "btn", type: "button", onclick: () => fileIn.click() }, "+ Documento"),
@@ -1817,6 +1875,8 @@ const UI = (function () {
       if (!visible(f, values)) continue;
       const v = values[f.id];
       if (f.minAge && v && ageOf(v) < f.minAge) { out.push({ f, msg: `età minima ${f.minAge} anni` }); continue; }
+      if (f.t === "email" && v && String(v).trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(String(v).trim())) { out.push({ f, msg: "indirizzo e-mail non valido (es. nome@esempio.it)" }); continue; }
+      if (f.t === "tel" && v && String(v).trim() && !/^\+?[\d\s./()-]{6,20}$/.test(String(v).trim())) { out.push({ f, msg: "numero di telefono non valido: usa solo cifre, spazi e il segno +" }); continue; }
       if (!f.req) continue;
       let empty;
       if (f.t === "check") empty = !(v && (typeof v === "string" ? v.trim() : Array.isArray(v) ? v.length : ((v.sel || []).length || (v.other || "").trim())));
@@ -1846,10 +1906,16 @@ const UI = (function () {
     return secs;
   }
 
-  function markMissing(container, miss) {
-    container.querySelectorAll(".field.err").forEach(x => { x.classList.remove("err"); const m = x.querySelector(".errmsg"); if (m) m.remove(); });
-    miss.forEach(({ f, msg }) => { const w = container.querySelector(`.field[data-id="${f.id}"]`); if (w) { w.classList.add("err"); w.append(el("p", { class: "errmsg" }, msg)); } });
-    const first = container.querySelector(".field.err"); if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+  function clearErr(w) { w.classList.remove("err"); const m = w.querySelector(".errmsg"); if (m) m.remove(); w.querySelectorAll("[aria-invalid]").forEach(x => x.removeAttribute("aria-invalid")); }
+  function markMissing(container, miss, opts = {}) {
+    container.querySelectorAll(".field.err").forEach(clearErr);
+    miss.forEach(({ f, msg }) => { const w = container.querySelector(`.field[data-id="${f.id}"]`); if (!w) return;
+      w.classList.add("err"); const mid = "err_" + f.id; w.append(el("p", { class: "errmsg", id: mid, role: "alert" }, "⚠ " + msg));
+      w.querySelectorAll("input,textarea,select").forEach(x => { x.setAttribute("aria-invalid", "true"); x.setAttribute("aria-describedby", mid); });
+      const off = () => { clearErr(w); w.removeEventListener("input", off); w.removeEventListener("change", off); };
+      w.addEventListener("input", off); w.addEventListener("change", off); });
+    const first = container.querySelector(".field.err");
+    if (first && opts.scroll !== false) { first.scrollIntoView({ behavior: "smooth", block: "center" }); const i = first.querySelector("input:not([type=radio]):not([type=checkbox]),textarea"); if (i) setTimeout(() => i.focus({ preventScroll: true }), 350); }
   }
 
   return { $, el, today, fmtDate, slug, toast, bytesToB64, b64ToBytes, visible, renderForm, renderField, renderAttachments, missing, markMissing, refreshVisibility, GEO };
@@ -1998,7 +2064,7 @@ const PDFGEN = (function () {
         case "text": case "email": case "tel": return v ? [val(v)] : [{ lines: [""], font: R, size: SZ, lh: opts.blank ? 17 : LH }];
         case "date": return v ? [val(fmtDate(v))] : [{ lines: [opts.blank ? "____ / ____ / ________" : ""], font: R, size: SZ, color: GRAY, lh: opts.blank ? 17 : LH }];
         case "area": return v ? [val(v)] : [{ lines: Array(f.rows || 2).fill(""), font: R, size: SZ, lh: opts.blank ? 16 : LH }];
-        case "check": { const c = v || { sel: [], other: "" }; const parts = f.opts.map(o => mark(c.sel.includes(o)) + o);
+        case "check": { const c = typeof v === "string" ? { sel: v ? [v] : [], other: "" } : Array.isArray(v) ? { sel: v, other: "" } : { sel: [], other: "", ...(v || {}) }; if (!Array.isArray(c.sel)) c.sel = []; const parts = f.opts.map(o => mark(c.sel.includes(o)) + o);
           if (f.other) parts.push(mark(!!(c.other || "").trim()) + "Altro" + ((c.other || "").trim() ? ": " + c.other.trim() : ""));
           return [val(parts.join("     "))]; }
         case "check1": return [val(mark(!!v) + f.text)];
@@ -2073,6 +2139,12 @@ const PDFGEN = (function () {
     };
     for (const [si, s] of F.sections.entries()) {
       if (F.key === "scheda" && si === F.sections.length - 1) drawAttSection();
+      if (meta.origine === "Direttivo" && s.fields.some(f => f.id === "consenso_dati")) {          // comunicazione del Direttivo: solo il nominativo
+        sectionTitle("Compilata da", 40);
+        row("Compilata da", [val((meta.autore || values.nome || "") + " – Consiglio Direttivo del Comitato", B), val("Comunicazione interna del Direttivo: non richiede firma.", I, 8.5, GRAY)]);
+        if (values.data_firma) row("Data", [val(fmtDate(values.data_firma))]);
+        continue;
+      }
       sectionTitle(s.title, 40);
       if (s.note) { for (const l of wrap(s.note, I, 8.5, W)) { text(l, ML, y - 8, I, 8.5, GRAY); y -= 10.5; } y -= 3; }
       await drawFields(s.fields, values);
@@ -2088,6 +2160,11 @@ const PDFGEN = (function () {
     if (note.length && opts.note !== false) {
       sectionTitle("Annotazioni del Comitato", 30);
       note.forEach(n => row(`${n.quando || ""}${n.chi ? " – " + n.chi : ""}`, [val(n.testo)], { shade: HEAD }));
+    }
+    const fz = meta.fascicolo;
+    if (fz && ((fz.collegate || []).length > 1 || (fz.storico || []).length)) {
+      sectionTitle("Storico del fascicolo " + fz.capofila, 40);
+      for (const v of fz.voci || []) row(v.data, [val(v.titolo, B), ...(v.testo ? [val(v.testo)] : []), ...(v.nota ? [val(v.nota, I, 8.5, GRAY)] : [])]);
     }
     if ((meta.firme || []).length || (meta.firmeAttese || []).length) {
       sectionTitle("Firme dei Coordinatori", 70);
@@ -2152,6 +2229,80 @@ const PDFGEN = (function () {
     return await pdf.save();
   }
   return { build, staticMap };
+})();
+</script>
+<script>/* Scrittura di file Excel (.xlsx) direttamente nel browser, senza librerie esterne.
+   XLSX.build([{ name, rows: [[...], ...], widths: [...] }]) restituisce i byte del file:
+   prima riga in grassetto con filtro, riga bloccata, testo a capo. */
+const XLSX = (() => {
+  const enc = new TextEncoder();
+  const NS = "http:" + "/" + "/schemas.openxmlformats.org/";
+  const T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = (b) => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = T[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  function zip(files) {
+    const parts = [], central = []; let off = 0;
+    const d0 = new Date(), dosT = (d0.getHours() << 11) | (d0.getMinutes() << 5) | (d0.getSeconds() >> 1), dosD = ((d0.getFullYear() - 1980) << 9) | ((d0.getMonth() + 1) << 5) | d0.getDate();
+    for (const f of files) {
+      const nm = enc.encode(f.name), d = typeof f.data === "string" ? enc.encode(f.data) : f.data, crc = crc32(d);
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+      h.setUint16(10, dosT, true); h.setUint16(12, dosD, true); h.setUint32(14, crc, true); h.setUint32(18, d.length, true); h.setUint32(22, d.length, true); h.setUint16(26, nm.length, true);
+      parts.push(new Uint8Array(h.buffer), nm, d);
+      const c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+      c.setUint16(12, dosT, true); c.setUint16(14, dosD, true); c.setUint32(16, crc, true); c.setUint32(20, d.length, true); c.setUint32(24, d.length, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+      central.push(new Uint8Array(c.buffer), nm);
+      off += 30 + nm.length + d.length;
+    }
+    const cs = central.reduce((a, b) => a + b.length, 0), e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+    const all = [...parts, ...central, new Uint8Array(e.buffer)], out = new Uint8Array(all.reduce((a, b) => a + b.length, 0));
+    let p = 0; for (const a of all) { out.set(a, p); p += a.length; }
+    return out;
+  }
+  const esc = (s) => String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const col = (i) => { let s = ""; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+  const sheetName = (n, used) => { let s = String(n).replace(/[\[\]:*?\/\\]/g, " ").slice(0, 31).trim() || "Foglio"; let k = 2, b = s; while (used.has(s)) s = b.slice(0, 28) + " " + k++; used.add(s); return s; };
+  function sheetXml(sh) {
+    const rows = sh.rows, nc = Math.max(1, ...rows.map(r => r.length));
+    const cols = Array.from({ length: nc }, (_, i) => `<col min="${i + 1}" max="${i + 1}" width="${(sh.widths && sh.widths[i]) || 18}" customWidth="1"/>`).join("");
+    const body = rows.map((r, ri) => `<row r="${ri + 1}">` + r.map((v, ci) => {
+      const ref = col(ci) + (ri + 1), st = ri === 0 ? 1 : 2;
+      if (v === null || v === undefined || v === "") return `<c r="${ref}" s="${st}"/>`;
+      if (typeof v === "number" && isFinite(v)) return `<c r="${ref}" s="${st}"><v>${v}</v></c>`;
+      return `<c r="${ref}" s="${st}" t="inlineStr"><is><t xml:space="preserve">${esc(String(v).slice(0, 32000))}</t></is></c>`;
+    }).join("") + "</row>").join("");
+    const last = col(nc - 1) + Math.max(1, rows.length);
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="${NS}spreadsheetml/2006/main" xmlns:r="${NS}officeDocument/2006/relationships">` +
+      `<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" xSplit="1" topLeftCell="B2" activePane="bottomRight" state="frozen"/></sheetView></sheetViews>` +
+      `<sheetFormatPr defaultRowHeight="15"/><cols>${cols}</cols><sheetData>${body}</sheetData>` + (rows.length > 1 ? `<autoFilter ref="A1:${last}"/>` : "") + `</worksheet>`;
+  }
+  function build(sheets) {
+    const used = new Set(); sheets = sheets.map(s => ({ ...s, name: sheetName(s.name, used) }));
+    const files = [
+      { name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="${NS}package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>` +
+        sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("") + `</Types>` },
+      { name: "_rels/.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="${NS}package/2006/relationships"><Relationship Id="rId1" Type="${NS}officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
+      { name: "xl/workbook.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="${NS}spreadsheetml/2006/main" xmlns:r="${NS}officeDocument/2006/relationships"><sheets>` +
+        sheets.map((s, i) => `<sheet name="${esc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("") + `</sheets>` +
+        `<definedNames>` + sheets.map((s, i) => s.rows.length > 1 ? `<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">'${esc(s.name.replace(/'/g, "''"))}'!$A$1:$${col(Math.max(1, ...s.rows.map(r => r.length)) - 1)}$${s.rows.length}</definedName>` : "").join("") + `</definedNames></workbook>` },
+      { name: "xl/_rels/workbook.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="${NS}package/2006/relationships">` +
+        sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="${NS}officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join("") +
+        `<Relationship Id="rId${sheets.length + 1}" Type="${NS}officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` },
+      { name: "xl/styles.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="${NS}spreadsheetml/2006/main">` +
+        `<fonts count="2"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts>` +
+        `<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF8B1E1E"/><bgColor indexed="64"/></patternFill></fill></fills>` +
+        `<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFD9D2CB"/></left><right style="thin"><color rgb="FFD9D2CB"/></right><top style="thin"><color rgb="FFD9D2CB"/></top><bottom style="thin"><color rgb="FFD9D2CB"/></bottom><diagonal/></border></borders>` +
+        `<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>` +
+        `<cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>` +
+        `<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>` +
+        `<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs>` +
+        `<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>` },
+      ...sheets.map((s, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data: sheetXml(s) })),
+    ];
+    return zip(files);
+  }
+  return { build };
 })();
 </script>
 <script>"use strict";
@@ -2322,7 +2473,9 @@ const PDFGEN = (function () {
       (installEvt || (/iphone|ipad|ipod/i.test(navigator.userAgent) && !navigator.standalone)) && location.protocol === "https:" && !matchMedia("(display-mode: standalone)").matches
         ? el("section", { class: "sec" }, el("h3", {}, "App sul telefono"), el("button", { type: "button", class: "btn", onclick: () => $("#btn-install").click() }, "📲 Installa l'app")) : null,
       window.APP_PWA ? el("p", { class: "mguide" }, el("a", { href: "guida.pdf", target: "_blank", rel: "noopener" }, ic("help"), "Guida all'app")) : null,
+      !first && connected() ? el("section", { class: "sec" }, el("h3", {}, "Esporta in Excel"), el("p", { class: "hint" }, "Scarica tutte le pratiche, un foglio per tipologia (segnalazioni, proposte, rifiuti, verbali…)."), el("button", { type: "button", class: "btn", id: "btn-excel", onclick: () => excelDialog() }, "⬇ Scarica Excel")) : null,
       !first && connected() && isCoord() ? renderFirma() : null,
+      !first && connected() && isCoord() ? renderCestino() : null,
       !first && connected() && isCoord() ? renderOperatori() : null,
       first ? null : el("section", { class: "sec" }, el("h3", {}, "Avvisi e dati locali"),
         el("div", { class: "field" }, el("label", { class: "opt single" }, el("input", { type: "checkbox", checked: !!S.settings.desktop, onchange: async e => {
@@ -2336,6 +2489,200 @@ const PDFGEN = (function () {
           for (const k of await DB.keys()) if (k !== "settings") await DB.del(k);
           S.items = []; S.seen = []; toast("Dati locali cancellati.", "ok"); } }, "Cancella i dati salvati su questo dispositivo"),
           el("p", { class: "hint" }, "Da usare su un computer condiviso, al termine del lavoro.")))].filter(Boolean));
+  }
+
+  /* ============================================================ fascicolo: comunicazioni collegate e storico */
+  const EVENTI = ["Risposta ricevuta", "Sollecito inviato", "Comunicazione inviata", "Intervento eseguito", "Sopralluogo", "Incontro", "Altro"];
+  const EV_IC = { "Risposta ricevuta": "📩", "Sollecito inviato": "⏰", "Comunicazione inviata": "📤", "Intervento eseguito": "🛠", "Sopralluogo": "👀", "Incontro": "🤝", "Altro": "•" };
+  function labelOf(F, k) { for (const s of F.sections || []) for (const f of s.fields || []) if (f.id === k) return f.label; for (const f of F.riservato || []) if (f.id === k) return f.label; return k; }
+  const dmy = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "") ? d.split("-").reverse().join("/") : (d || "");
+  const evKey = (e) => { const r = String(e.registrato || ""), d = dmy(e.data); return sortKey(r.slice(0, 10) === d ? r : e.data) + "~" + String(e.n).padStart(3, "0"); };
+  const sortKey = (d) => { const m = String(d || "").match(/^(\d\d)\/(\d\d)\/(\d{4})\s*(\d\d:\d\d)?/); if (m) return m[3] + m[2] + m[1] + (m[4] || "00:00"); const n = String(d || "").match(/^(\d{4})-(\d\d)-(\d\d)/); return n ? n[1] + n[2] + n[3] + "12:00" : ""; };
+  function fascicoloPanel(rec) {
+    const fz = rec.fascicolo, sec = el("section", { class: "sec fasc" }, el("h3", {}, "Storico e comunicazioni collegate"));
+    if (!connected()) { sec.append(el("p", { class: "hint" }, "Collegati all'archivio per vedere e aggiornare lo storico.")); return sec; }
+    if (!fz) { sec.append(el("p", { class: "hint" }, "Storico non disponibile: riapri la pratica.")); return sec; }
+    const root = fz.capofila, isRoot = root === rec.id, coll = (fz.collegate || []).filter(c => c.id !== root);
+    if (!isRoot) sec.append(el("div", { class: "box fasc-in" }, "Questa comunicazione fa parte del fascicolo di ", el("button", { class: "link", onclick: () => openRecord(root) }, root), " (prima segnalazione). Lo storico qui sotto è quello dell'intero fascicolo."));
+    else if (!coll.length && !(fz.storico || []).length) sec.append(el("p", { class: "hint" }, "Qui si raccolgono le altre segnalazioni sullo stesso problema, le risposte di Comune ed enti e gli interventi fatti. Collega le comunicazioni successive a questa, che resta la prima del fascicolo."));
+    // linea del tempo
+    const voci = [];
+    (fz.collegate || []).forEach(c => voci.push({ k: sortKey(c.ricevuto), el: el("div", { class: "tl-i comm" + (c.id === rec.id ? " me" : "") },
+      el("span", { class: "tl-d" }, String(c.ricevuto || "").slice(0, 10)),
+      el("span", { class: "tl-b" }, el("b", {}, c.id === root ? "Prima comunicazione" : "Comunicazione collegata"), " · ", c.id === rec.id ? el("b", {}, c.id) : el("button", { class: "link", onclick: () => openRecord(c.id) }, c.id),
+        " – " + (FORMS[c.type]?.short || "") + (c.origine === "Direttivo" ? " del Direttivo" : c.nome ? " di " + c.nome : "") + (c.oggetto ? ": " + c.oggetto : ""), " ", stBadge(c.stato),
+        c.id !== root && c.id !== rec.id ? null : null)) }));
+    (fz.storico || []).forEach(e => voci.push({ k: evKey(e), el: el("div", { class: "tl-i ev" },
+      el("span", { class: "tl-d" }, dmy(e.data)),
+      el("span", { class: "tl-b" }, el("b", {}, (EV_IC[e.tipo] || "•") + " " + e.tipo), e.soggetto ? " – " + e.soggetto : "", el("br"), el("span", { class: "tl-t" }, e.testo),
+        (e.atts || []).length ? el("span", { class: "tl-a" }, (e.atts || []).map(a => el("button", { class: "link small", onclick: () => openAtt({ ...a, kind: /^image/.test(a.mime || "") ? "image" : /pdf/.test(a.mime || "") ? "pdf" : "other", title: a.name }) }, "📎 " + a.name))) : null,
+        el("span", { class: "muted small" }, ` registrato da ${e.chi} il ${e.registrato}`))) }));
+    voci.sort((a, b) => a.k.localeCompare(b.k));
+    if (voci.length > 1 || (fz.storico || []).length) sec.append(el("div", { class: "timeline" }, voci.map(v => v.el)));
+    // azioni
+    const bar = el("div", { class: "row-btns" },
+      el("button", { class: "btn", type: "button", onclick: () => eventoDialog(rec, root) }, "+ Aggiungi evento allo storico"),
+      el("button", { class: "btn", type: "button", onclick: () => collegaDialog(rec, root, isRoot ? "dentro" : "dentro") }, "🔗 Collega un'altra comunicazione"),
+      isRoot && !coll.length ? el("button", { class: "link small", type: "button", onclick: () => collegaDialog(rec, root, "fuori") }, "Questa riguarda un problema già segnalato? Collegala alla prima") : null,
+      !isRoot ? el("button", { class: "link small", type: "button", onclick: async () => { if (!confirm("Scollegare " + rec.id + " dal fascicolo di " + root + "?")) return; try { await api("scollega", { id: rec.id }); toast("Comunicazione scollegata.", "ok"); await sync({ quiet: true, keepView: true }); openRecord(rec.id); } catch (e) { toast(e.message, "warn"); } } }, "Scollega dal fascicolo") : null);
+    sec.append(bar);
+    return sec;
+  }
+  function collegaDialog(rec, root, verso) {
+    // verso "dentro": scegli una comunicazione da aggiungere a questo fascicolo; "fuori": scegli la prima a cui collegare questa
+    const close = () => sh.remove();
+    const cand = S.items.filter(i => FORMS[i.type]?.group === "cittadini" && i.id !== rec.id && i.id !== root && (verso === "fuori" || i.collegata !== root));
+    const q = el("input", { type: "search", placeholder: "Cerca per numero, via, nome, oggetto…", id: "cg_q" });
+    const list = el("div", { class: "cg-list" });
+    const draw = () => { list.innerHTML = ""; const qq = q.value.toLowerCase();
+      const its = cand.filter(i => !qq || [i.id, i.nome, i.zona, i.oggetto].join(" ").toLowerCase().includes(qq)).slice(0, 60);
+      if (!its.length) list.append(el("p", { class: "muted" }, "Nessuna comunicazione trovata."));
+      its.forEach(i => list.append(el("button", { type: "button", class: "cg-row", onclick: async () => {
+        const id = verso === "fuori" ? rec.id : i.id, a = verso === "fuori" ? i.id : root;
+        if (!confirm(verso === "fuori" ? `Collegare ${rec.id} al fascicolo di ${i.collegata || i.id}?` : `Collegare ${i.id} al fascicolo di ${root}?`)) return;
+        try { const r = await api("collega", { id, a }); close(); toast(`Collegata al fascicolo di ${r.capofila}.`, "ok"); await sync({ quiet: true, keepView: true }); openRecord(rec.id); } catch (e) { toast(e.message, "warn"); } } },
+        el("b", {}, i.id), " " + (FORMS[i.type]?.short || "") + " · " + String(i.ricevuto || "").slice(0, 10) + (i.zona ? " · " + i.zona : ""), el("br"), el("span", { class: "muted" }, (i.oggetto || "") + (i.collegata ? " (già nel fascicolo " + i.collegata + ")" : "")))));
+    };
+    q.oninput = draw;
+    const sh = el("div", { class: "sheet-bg", onclick: e => { if (e.target === sh) close(); } }, el("div", { class: "sheet msheet wide-sheet", role: "dialog", "aria-label": "Collega" },
+      el("b", {}, verso === "fuori" ? "A quale comunicazione precedente si riferisce " + rec.id + "?" : "Quale comunicazione riguarda lo stesso problema di " + root + "?"),
+      el("p", { class: "hint" }, "Le comunicazioni collegate formano un unico fascicolo, che parte dalla prima segnalazione. Ognuna resta con il suo numero e il suo stato."),
+      q, list, el("button", { type: "button", class: "link", onclick: close }, "Annulla")));
+    document.body.append(sh); draw(); q.focus();
+  }
+  function eventoDialog(rec, root) {
+    const close = () => sh.remove();
+    const store = { values: { data: UI.today() }, sigs: {}, atts: [], onChange: () => { } };
+    const tipo = el("select", { id: "ev_tipo" }, EVENTI.map(t => el("option", { value: t }, t)));
+    const data = el("input", { type: "date", id: "ev_data", value: UI.today() });
+    const sogg = el("input", { type: "text", id: "ev_sogg", placeholder: "Es. Comune di Savona – Settore Lavori pubblici, SEA-S, Polizia locale" });
+    const testo = el("textarea", { id: "ev_testo", rows: 4, placeholder: "Cosa è successo: contenuto della risposta, intervento eseguito, esito del sopralluogo…" });
+    const att = UI.renderAttachments(store, { title: "Allegati (facoltativi)", hint: "Es. la lettera di risposta o la foto dell'intervento.", maxFiles: 6, maxMB: 15, paper: false });
+    const go = el("button", { type: "button", class: "btn primary", id: "ev_go", onclick: async () => {
+      if (testo.value.trim().length < 3) { toast("Descrivi l'evento.", "warn"); return; }
+      go.disabled = true; status("Registro l'evento…");
+      try { await api("evento", { id: rec.id, evento: { tipo: tipo.value, data: data.value, soggetto: sogg.value.trim(), testo: testo.value.trim(),
+          atts: store.atts.map(a => ({ name: a.name, mime: a.mime, b64: a.kind === "image" ? a.data.split(",")[1] : a.b64 })) } }, 180000);
+        close(); toast("Evento aggiunto allo storico del fascicolo " + root + ".", "ok"); await sync({ quiet: true, keepView: true }); openRecord(rec.id); }
+      catch (e) { go.disabled = false; toast(e.message, "warn"); } finally { status(); }
+    } }, "Aggiungi allo storico");
+    const sh = el("div", { class: "sheet-bg", onclick: e => { if (e.target === sh) close(); } }, el("div", { class: "sheet msheet wide-sheet", role: "dialog", "aria-label": "Evento" },
+      el("b", {}, "Nuovo evento nello storico di " + root),
+      el("div", { class: "ev-grid" }, el("div", { class: "field" }, el("label", { class: "lab", for: "ev_tipo" }, "Tipo"), tipo), el("div", { class: "field" }, el("label", { class: "lab", for: "ev_data" }, "Data"), data)),
+      el("div", { class: "field" }, el("label", { class: "lab", for: "ev_sogg" }, "Soggetto (chi ha risposto, chi è intervenuto, a chi si è scritto)"), sogg),
+      el("div", { class: "field" }, el("label", { class: "lab", for: "ev_testo" }, "Descrizione *"), testo),
+      att, el("div", { class: "row-btns" }, go, el("button", { type: "button", class: "link", onclick: close }, "Annulla"))));
+    document.body.append(sh); testo.focus();
+  }
+
+  /* ============================================================ esportazione in Excel
+     Un foglio per tipologia (Segnalazioni, Proposte, Rifiuti, …) con tutti i dati del modulo, la lavorazione
+     e i collegamenti a cartella e PDF. I dati completi si scaricano dall'archivio al momento. */
+  const dIt = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || "")) ? String(v).split("-").reverse().join("/") : v;
+  function cellOf(f, v) {
+    if (v === undefined || v === null || v === "") return "";
+    switch (f.t) {
+      case "date": return dIt(v);
+      case "check1": return v ? "Sì" : "";
+      case "check": { const o = typeof v === "string" ? { sel: [v] } : Array.isArray(v) ? { sel: v } : v; return [...(o.sel || []), o.other ? "Altro: " + o.other : ""].filter(Boolean).join("; "); }
+      case "geo": return UI.GEO.valid(v) ? v.lat.toFixed(6) + ", " + v.lng.toFixed(6) : "";
+      case "items": return (Array.isArray(v) ? v : []).map((it, i) => (i + 1) + ") " + (f.fields || []).map(x => it && it[x.id] ? x.label + ": " + cellOf(x, it[x.id]) : "").filter(Boolean).join(" – ")).join("\n");
+      case "grid": return (f.rows || []).map((r, ri) => { const p = (f.cols || []).slice(1).map((c, ci) => v[ri + "_" + ci] ? c + ": " + v[ri + "_" + ci] : "").filter(Boolean); return p.length ? r + " → " + p.join("; ") : ""; }).filter(Boolean).join("\n");
+      default: return typeof v === "object" ? JSON.stringify(v) : String(v);
+    }
+  }
+  function fieldsOfForm(F, riservato) {
+    const out = [];
+    (riservato ? [{ fields: F.riservato || [] }] : F.sections || []).forEach(sec => (sec.fields || []).forEach(f => { if (!["info", "sign"].includes(f.t)) out.push(f); }));
+    return out;
+  }
+  function sheetFor(type, items) {
+    const F = FORMS[type], cit = F.group === "cittadini";
+    const campi = fieldsOfForm(F), ris = cit ? fieldsOfForm(F, true) : [];
+    const head = ["Numero", "Ricevuto il", "Stato", "Origine", "Inserito da", ...(cit ? ["Assegnato a"] : []), "Ultimo aggiornamento", "Aggiornato da",
+      ...campi.map(f => f.label), ...ris.map(f => "Comitato – " + f.label), ...(cit ? [] : ["Firme"]), "Annotazioni", "Allegati (n.)", "Cartella allegati", "PDF archiviato"];
+    const rows = [head];
+    items.forEach(it => { const r = it.record || {}, v = r.values || {}, rv = r.riservato || {};
+      rows.push([it.id, it.ricevuto, it.stato, it.origine, it.inserito || r.inserito_da || "", ...(cit ? [it.assegnato || ""] : []), it.aggiornato || "", it.aggiornato_da || "",
+        ...campi.map(f => cellOf(f, v[f.id])), ...ris.map(f => cellOf(f, rv[f.id])),
+        ...(cit ? [] : [(r.firme || []).map(x => x.nome + " (" + x.quando + ")").join("; ")]),
+        (r.note || []).map(n => n.quando + " – " + n.chi + ": " + n.testo).join("\n"), (r.atts || []).length || "", it.cartella || "", it.pdf || ""]); });
+    const widths = head.map((h, i) => i === 0 ? 16 : /descri|note|annota|discuss|sintesi|testo|motiv|propost/i.test(h) ? 48 : /indirizzo|luogo|oggetto|titolo/i.test(h) ? 32 : Math.min(28, Math.max(12, h.length + 2)));
+    const XN = { segnalazione: "Segnalazioni", proposte: "Proposte", rifiuti: "Rifiuti", adesione: "Adesioni", albo: "Albo Volontari", verbale_direttivo: "Verbali Direttivo", verbale_tavolo: "Tavoli tematici", scheda: "Schede progetto" };
+    return { name: XN[type] || F.name, rows, widths };
+  }
+  async function exportExcel(types) {
+    if (!connected()) { toast("Per scaricare l'Excel serve il collegamento all'archivio.", "warn"); return; }
+    status("Preparo il file Excel…");
+    try {
+      const r = await api("dump", { types }, 180000);
+      const per = {}; r.items.forEach(it => (per[it.type] = per[it.type] || []).push(it));
+      const ord = [...ORDER.cittadini, ...ORDER.interno, ...Object.keys(FORMS)].filter((k, i, a) => a.indexOf(k) === i && types.includes(k));
+      const sk = (i) => String(i.ricevuto || "").replace(/^(\d\d)\/(\d\d)\/(\d{4})(.*)$/, "$3$2$1$4");
+      const sheets = ord.map(k => sheetFor(k, (per[k] || []).sort((a, b) => sk(a).localeCompare(sk(b)))));
+      const oggi = new Date().toISOString().slice(0, 10);
+      const nome = types.length === 1 ? `Pratiche_${(PLUR[types[0]] || FORMS[types[0]].short).replace(/\W+/g, "_")}_${oggi}.xlsx` : `Pratiche_Comitato_${oggi}.xlsx`;
+      saveFile(XLSX.build(sheets), nome, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      toast(`Excel pronto: ${r.items.length} pratiche in ${sheets.length} ${sheets.length === 1 ? "foglio" : "fogli"}.`, "ok");
+    } catch (e) { toast(e.message, "warn"); } finally { status(); }
+  }
+  function excelDialog(pre) {
+    const close = () => sh.remove();
+    const keys = [...ORDER.cittadini, ...ORDER.interno];
+    const chk = keys.map(k => el("input", { type: "checkbox", value: k, checked: pre ? pre.includes(k) : true }));
+    const sh = el("div", { class: "sheet-bg", onclick: e => { if (e.target === sh) close(); } }, el("div", { class: "sheet msheet", role: "dialog", "aria-label": "Scarica Excel" },
+      el("b", {}, "Scarica le pratiche in Excel"),
+      el("p", { class: "hint" }, "Un foglio per ogni tipologia, con tutti i dati, lo stato, le annotazioni e i collegamenti a cartelle e PDF."),
+      el("div", { class: "xl-list" }, keys.map((k, i) => el("label", { class: "opt" }, chk[i], " " + FORMS[k].name, el("span", { class: "muted" }, " (" + S.items.filter(x => x.type === k).length + ")")))),
+      el("div", { class: "row-btns" }, el("button", { type: "button", class: "link small", onclick: () => chk.forEach(c => c.checked = true) }, "Tutte"), el("button", { type: "button", class: "link small", onclick: () => chk.forEach(c => c.checked = false) }, "Nessuna")),
+      el("button", { type: "button", class: "btn primary", id: "xl_go", onclick: () => { const t = chk.filter(c => c.checked).map(c => c.value); if (!t.length) { toast("Scegli almeno una tipologia.", "warn"); return; } close(); exportExcel(t); } }, "Scarica Excel"),
+      el("button", { type: "button", class: "link", onclick: close }, "Annulla")));
+    document.body.append(sh);
+  }
+
+  /* ============================================================ eliminazione (solo Coordinatori) */
+  function eliminaDialog(rec) {
+    if (rec.id.startsWith("LOC-")) {
+      if (!confirm("Eliminare questa bozza non ancora inviata all'archivio? L'operazione non si può annullare.")) return;
+      (async () => { await DB.del("rec:" + rec.id); const q = S.outbox.findIndex(j => j.localId === rec.id); if (q >= 0) { S.outbox.splice(q, 1); await saveOutbox(); } if (cur && cur.draftKey) await dropDraft(cur); toast("Bozza eliminata.", "ok"); renderHome(); })();
+      return;
+    }
+    if (!isCoord()) { toast("Solo i Coordinatori possono eliminare le pratiche.", "warn"); return; }
+    if (!connected()) { toast("Per eliminare una pratica serve la connessione.", "warn"); return; }
+    const close = () => sh.remove();
+    const mot = el("textarea", { id: "el_motivo", rows: 2, placeholder: "Es. modulo inviato due volte, prova, richiesta dell'interessato" });
+    const ok = el("input", { type: "checkbox", id: "el_ok", onchange: () => go.disabled = !ok.checked });
+    const go = el("button", { type: "button", class: "btn danger", id: "el_go", disabled: true, onclick: async () => {
+      if (mot.value.trim().length < 3) { toast("Scrivi il motivo dell'eliminazione.", "warn"); return; }
+      go.disabled = true;
+      try { await api("elimina", { id: rec.id, motivo: mot.value.trim(), version: rec.meta?.version });
+        await DB.del("rec:" + rec.id); S.items = S.items.filter(i => i.id !== rec.id); await DB.set("items", S.items);
+        close(); cur = null; toast(`Pratica ${rec.id} eliminata. Si può ripristinare dalle Impostazioni › Cestino.`, "ok"); renderHome(); }
+      catch (e) { go.disabled = false; toast(e.message, "warn"); }
+    } }, "Elimina la pratica");
+    const F = FORMS[rec.type];
+    const sh = el("div", { class: "sheet-bg", onclick: e => { if (e.target === sh) close(); } }, el("div", { class: "sheet msheet", role: "dialog", "aria-label": "Elimina" },
+      el("b", {}, "Eliminare " + F.name.toLowerCase() + " " + rec.id + "?"),
+      el("p", { class: "hint" }, "La pratica sparisce dall'elenco e dalla mappa. Resta nel Cestino dell'archivio (con il motivo e il tuo nome) e la sua cartella va nel cestino di Drive: un Coordinatore può ripristinarla entro 30 giorni."),
+      (rec.firme || []).length ? el("p", { class: "box warnbox" }, "Attenzione: il documento è firmato da " + rec.firme.map(x => x.nome).join(", ") + ".") : null,
+      el("div", { class: "field" }, el("label", { class: "lab", for: "el_motivo" }, "Motivo (obbligatorio)"), mot),
+      el("label", { class: "opt single" }, ok, " Confermo di voler eliminare la pratica " + rec.id + "."),
+      go, el("button", { type: "button", class: "link", onclick: close }, "Annulla")));
+    document.body.append(sh); mot.focus();
+  }
+  function renderCestino() {
+    const box = el("section", { class: "sec" }, el("h3", {}, "Cestino – pratiche eliminate"));
+    const body = el("div", {}, el("p", { class: "muted" }, "Carico…")); box.append(body);
+    const draw = (items) => { body.innerHTML = "";
+      if (!items.length) { body.append(el("p", { class: "muted" }, "Il Cestino è vuoto.")); return; }
+      body.append(el("div", { class: "cestino" }, items.map(i => el("div", { class: "cest-row" },
+        el("span", {}, el("b", {}, i.id), " · " + (FORMS[i.type]?.short || i.type) + (i.oggetto ? " · " + i.oggetto : ""), el("br"),
+          el("small", { class: "muted" }, `Eliminata il ${i.eliminata} da ${i.da} – motivo: ${i.motivo}`)),
+        el("button", { type: "button", class: "btn small", onclick: async (e) => { e.target.disabled = true;
+          try { await api("ripristina", { id: i.id }); toast(`Pratica ${i.id} ripristinata.`, "ok"); await sync({ quiet: true, keepView: true }); api("cestino").then(r => draw(r.items)); } catch (x) { e.target.disabled = false; toast(x.message, "warn"); } } }, "Ripristina")))));
+    };
+    api("cestino").then(r => draw(r.items)).catch(e => { body.innerHTML = ""; body.append(el("p", { class: "box warnbox" }, e.message)); });
+    return box;
   }
 
   /* ============================================================ firma grafica dei Coordinatori
@@ -2432,6 +2779,8 @@ const PDFGEN = (function () {
     return sec;
   }
   const canon = (o) => Array.isArray(o) ? "[" + o.map(canon).join(",") + "]" : o && typeof o === "object" ? "{" + Object.keys(o).sort().map(k => JSON.stringify(k) + ":" + canon(o[k])).join(",") + "}" : JSON.stringify(o === undefined ? null : o);
+  const fascBadge = (i) => i.collegata ? el("span", { class: "tag-fasc", title: "Collegata al fascicolo di " + i.collegata }, "↳ " + i.collegata)
+    : (() => { const n = S.items.filter(x => x.collegata === i.id).length; return n ? el("span", { class: "tag-fasc root", title: n + " comunicazioni collegate" }, "🔗 " + (n + 1)) : null; })();
   const daFirmare = (i) => isCoord() && (i.firmeAttese || []).includes(S.settings.operatore?.nome);
 
   /* Coordinatori: autorizzazioni degli operatori per i documenti interni */
@@ -2593,7 +2942,7 @@ const PDFGEN = (function () {
     const origini = [...new Set(its.map(i => i.origine).filter(Boolean))];
     const or = origini.length > 1 ? el("select", { "aria-label": "Origine", onchange: e => { f.origine = e.target.value; draw(); } }, el("option", { value: "" }, "Tutte le origini"), origini.map(o => el("option", { value: o, selected: f.origine === o }, o === "Direttivo" ? "Direttivo (inserite dagli operatori)" : o))) : null;
     const tbox = el("div", { class: "tbl-wrap" });
-    main.append(el("div", { class: "filters" }, q, st, or), tbox);
+    main.append(el("div", { class: "filters" }, q, st, or, el("button", { type: "button", class: "btn small xl-btn", title: "Scarica in Excel", onclick: () => excelDialog(S.filters.type ? [S.filters.type] : ORDER.cittadini) }, "⬇ Excel")), tbox);
     const draw = () => {
       const qq = f.q.toLowerCase();
       const all = [...local, ...its].filter(i => (!f.type || i.type === f.type) && (!f.stato || i.stato === f.stato) && (!f.origine || i.origine === f.origine) &&
@@ -2606,7 +2955,7 @@ const PDFGEN = (function () {
         el("thead", {}, el("tr", {}, ["N.", "Tipo", "Data", "Da / Responsabile", "Zona", "Oggetto", "Stato", "Assegnato a"].map(h => el("th", {}, h)))),
         el("tbody", {}, all.map(i => el("tr", { class: i.stato === "Nuovo" ? "is-new" : "", tabindex: "0", onclick: () => openRecord(i.id), onkeydown: e => { if (e.key === "Enter") openRecord(i.id); } },
           el("td", { class: "mono", "data-l": "N." }, i.id.startsWith("LOC-") ? "—" : i.id), el("td", { "data-l": "Tipo" }, FORMS[i.type]?.short || i.type), el("td", { "data-l": "Data" }, String(i.ricevuto || "").slice(0, 10)),
-          el("td", { "data-l": "Da" }, i.nome || "", i.origine === "Direttivo" ? el("span", { class: "tag-dir", title: "Inserita da " + (i.inserito || "un componente del Direttivo") }, "Direttivo") : null), el("td", { "data-l": "Zona" }, i.zona || ""), el("td", { class: "ogg", "data-l": "Oggetto" }, i.oggetto || ""), el("td", { "data-l": "Stato" }, stBadge(i.stato), daFirmare(i) ? el("span", { class: "tag-firma" }, "Da firmare") : (i.firme || []).length ? el("span", { class: "tag-firmato", title: "Firmato da " + i.firme.join(", ") }, "✔ " + i.firme.length) : null), el("td", { "data-l": "Assegnata" }, i.assegnato || ""))))));
+          el("td", { "data-l": "Da" }, i.nome || "", i.origine === "Direttivo" ? el("span", { class: "tag-dir", title: "Inserita da " + (i.inserito || "un componente del Direttivo") }, "Direttivo") : null), el("td", { "data-l": "Zona" }, i.zona || ""), el("td", { class: "ogg", "data-l": "Oggetto" }, i.oggetto || ""), el("td", { "data-l": "Stato" }, stBadge(i.stato), fascBadge(i), daFirmare(i) ? el("span", { class: "tag-firma" }, "Da firmare") : (i.firme || []).length ? el("span", { class: "tag-firmato", title: "Firmato da " + i.firme.join(", ") }, "✔ " + i.firme.length) : null), el("td", { "data-l": "Assegnata" }, i.assegnato || ""))))));
     };
     draw();
   }
@@ -2621,6 +2970,7 @@ const PDFGEN = (function () {
     main.append(el("div", { class: "new-docs" }, ORDER.interno.map(k => puoInterno(k)
       ? el("button", { class: "btn primary", onclick: () => openNew(k) }, "+ " + FORMS[k].name)
       : el("button", { class: "btn locked", disabled: true, title: "Riservato ai Coordinatori o agli operatori autorizzati" }, "🔒 " + FORMS[k].name))));
+    if (connected()) main.lastChild.append(el("button", { type: "button", class: "btn xl-btn", onclick: () => excelDialog(ORDER.interno) }, "⬇ Excel"));
     if (ok.length < ORDER.interno.length) main.append(el("p", { class: "box note-perm" }, "🔒 Verbali del Direttivo, resoconti dei Tavoli e schede progetto possono essere creati e modificati solo dai Coordinatori o dagli operatori che un Coordinatore ha autorizzato. Puoi consultarli e generarne il PDF."));
     const its = S.items.filter(i => FORMS[i.type] && FORMS[i.type].group === "interno");
     const loc = (await localDrafts()).filter(r => FORMS[r.type].group === "interno").map(r => ({ id: r.id, type: r.type, ricevuto: (r.creato || "").slice(0, 10).split("-").reverse().join("/"), stato: "Da sincronizzare", nome: "", zona: "", oggetto: summaryOf(r), sortKey: "9" + r.creato }));
@@ -2658,15 +3008,32 @@ const PDFGEN = (function () {
   /* ============================================================ documento */
   let cur = null; // { rec, F, store, rstore, meta, isNew, origine, editCitizen, dirty }
 
-  function openNew(type, origine) {
+  /* Nuovo modulo: un solo modulo in compilazione per tipo e provenienza. Si salva da solo mentre si scrive e,
+     riaprendo lo stesso modulo, si riprende quello (nessuna copia). Il codice «token» fa sì che l'archivio
+     registri una sola pratica anche se il salvataggio parte due volte. */
+  const newToken = () => { const a = new Uint8Array(12); crypto.getRandomValues(a); return "G" + Array.from(a, b => b.toString(16).padStart(2, "0")).join(""); };
+  const draftKey = (type, origine) => "nuovo:" + type + ":" + (origine || "Operatore");
+  async function openNew(type, origine, fresh) {
     if (FORMS[type].group === "interno" && !puoInterno(type)) { toast("Solo i Coordinatori o gli operatori autorizzati possono creare questo documento.", "warn"); return; }
-    const id = "LOC-" + Date.now().toString(36);
-    const F = FORMS[type];
-    const rec = { id, type, values: {}, riservato: {}, atts: [], sigs: {}, note: [], creato: new Date().toISOString(), meta: { stato: "Da sincronizzare", origine: origine || "Operatore", version: 0, pending: true } };
-    cur = { rec, F, isNew: true, origine: origine || "Operatore", editCitizen: true, direttivo: origine === "Direttivo" };
-    if (cur.direttivo) { rec.values = { nome: S.settings.operatore?.nome || "", consenso_dati: true, data_firma: UI.today() }; rec.inserito_da = S.settings.operatore?.nome || ""; }
+    const key = draftKey(type, origine);
+    if (fresh) await DB.del(key);
+    let rec = await DB.get(key), ripreso = !!rec;
+    if (!rec) {
+      rec = { id: "LOC-" + Date.now().toString(36), token: newToken(), type, values: {}, riservato: {}, atts: [], sigs: {}, note: [], creato: new Date().toISOString(), meta: { stato: "Da sincronizzare", origine: origine || "Operatore", version: 0, pending: true } };
+      if (origine === "Direttivo") { rec.values = { nome: S.settings.operatore?.nome || "", consenso_dati: true, data_firma: UI.today() }; rec.inserito_da = S.settings.operatore?.nome || ""; }
+    }
+    cur = { rec, F: FORMS[type], isNew: true, origine: origine || "Operatore", editCitizen: true, direttivo: origine === "Direttivo", draftKey: key, ripreso: ripreso && rec.salvato };
     renderRecord();
   }
+  let draftTimer = null;
+  function saveDraftSoon() {
+    if (!cur || !cur.isNew || !cur.draftKey) return;
+    clearTimeout(draftTimer);
+    const c = cur;
+    draftTimer = setTimeout(() => { if (!c.draftKey) return; const r = c.rec;
+      DB.set(c.draftKey, { ...r, values: c.store.values, riservato: c.rstore.values, sigs: c.store.sigs, atts: c.store.atts, salvato: new Date().toISOString() }); }, 500);
+  }
+  async function dropDraft(c) { clearTimeout(draftTimer); if (c && c.draftKey) { await DB.del(c.draftKey); c.draftKey = null; } }
 
   async function openRecord(id) {
     let rec = await DB.get("rec:" + id);
@@ -2690,17 +3057,23 @@ const PDFGEN = (function () {
     S.view = "record"; cur.subheadEl = null;
     const { rec, F } = cur, meta = rec.meta || {};
     const citizen = F.group === "cittadini";
-    cur.store = { values: JSON.parse(JSON.stringify(rec.values || {})), sigs: { ...(rec.sigs || {}) }, atts: (rec.atts || []).map(a => ({ ...a })), readonly: (citizen && !cur.editCitizen) || (!citizen && !puoInterno(rec.type)), onChange: () => { cur.dirty = true; } };
-    cur.rstore = { values: JSON.parse(JSON.stringify(rec.riservato || {})), sigs: {}, atts: [], onChange: () => { cur.dirty = true; } };
+    cur.store = { values: JSON.parse(JSON.stringify(rec.values || {})), sigs: { ...(rec.sigs || {}) }, atts: (rec.atts || []).map(a => ({ ...a })), readonly: (citizen && !cur.editCitizen) || (!citizen && !puoInterno(rec.type)), onChange: () => { cur.dirty = true; saveDraftSoon(); } };
+    cur.rstore = { values: JSON.parse(JSON.stringify(rec.riservato || {})), sigs: {}, atts: [], onChange: () => { cur.dirty = true; saveDraftSoon(); } };
     cur.dirty = false;
     const main = $("#main"); main.innerHTML = ""; main.className = "";
     const stati = STATI[F.group];
     const statoSel = el("select", { id: "r_stato", onchange: () => cur.dirty = true }, stati.map(s => el("option", { value: s, selected: (meta.stato || stati[0]) === s }, s)));
     const assIn = el("input", { type: "text", id: "r_assegnato", value: meta.assegnato || "", placeholder: "Referente di quartiere, Tavolo, componente del Direttivo", oninput: () => cur.dirty = true });
     const notaIn = el("textarea", { id: "r_nota", rows: 2, placeholder: "Annotazione interna (resta nella cronologia della pratica)", oninput: () => cur.dirty = true });
+    const torna = () => { if (cur.dirty && !confirmLeave()) return; renderHome(); };
+    main.append(el("div", { class: "recbar" },
+      el("button", { class: "btn back-btn", type: "button", onclick: torna }, "← Torna all'elenco"),
+      el("span", { class: "recbar-t" }, el("b", {}, F.short || F.name), " ", el("span", { class: "mono" }, cur.isNew ? "nuovo" : rec.id)),
+      (!citizen && !puoInterno(rec.type)) ? null : el("button", { class: "btn primary small", type: "button", onclick: save }, cur.isNew ? "Salva" : "Salva le modifiche")));
     main.append(el("div", { class: "form-head" },
-      el("button", { class: "link", onclick: () => { if (cur.dirty && !confirmLeave()) return; renderHome(); } }, "← Torna all'elenco"),
       el("h2", {}, F.name), el("p", { class: "sub" }, cur.isNew ? (cur.direttivo ? "Nuova comunicazione del Direttivo – inserita da " + (S.settings.operatore?.nome || "operatore") : cur.origine && citizen ? "Nuovo inserimento da modulo " + cur.origine.toLowerCase() : "Nuovo documento") : `N. ${rec.id} · ${meta.ricevuto || ""} · origine: ${meta.origine || ""}${meta.aggiornato_da ? " · ultimo aggiornamento: " + meta.aggiornato_da + " " + (meta.aggiornato || "") : ""}`)));
+    if (cur.isNew && cur.ripreso) main.append(el("div", { class: "box" }, "Hai ripreso il modulo che avevi iniziato il " + new Date(cur.ripreso).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" }) + " su questo dispositivo. ",
+      el("button", { class: "link", type: "button", onclick: () => { if (confirm("Cancellare i dati inseriti e ricominciare da un modulo vuoto?")) openNew(rec.type, cur.origine, true); } }, "Ricomincia da zero")));
     if (cur.conflict) main.append(el("div", { class: "box warnbox" }, el("b", {}, "Conflitto di salvataggio. "), "Qualcun altro ha modificato questa pratica mentre lavoravi senza connessione. Qui sotto vedi la versione dell'archivio. ",
       el("button", { class: "btn small", onclick: async () => { cur.store.values = cur.conflict.values || cur.store.values; cur.rstore.values = cur.conflict.riservato || cur.rstore.values; const body = { ...cur.conflict, force: true }; await DB.del("conflict:" + rec.id); cur.conflict = null; await doUpdate(body); } }, "Sovrascrivi con le mie modifiche"),
       el("button", { class: "link small", onclick: async () => { await DB.del("conflict:" + rec.id); cur.conflict = null; renderRecord(); } }, "Scarta le mie modifiche")));
@@ -2711,31 +3084,45 @@ const PDFGEN = (function () {
         citizen ? el("div", { class: "field" }, el("label", { class: "lab", for: "r_assegnato" }, "Assegnata a"), assIn) : null));
     if (citizen && F.riservato) { const box = el("div"); F.riservato.forEach(f => box.append(UI.renderField(f, cur.rstore))); cur.rstore.root = box; panel.append(box); UI.refreshVisibility(cur.rstore); }
     panel.append(el("div", { class: "field" }, el("label", { class: "lab", for: "r_nota" }, "Nuova annotazione"), notaIn));
-    if ((rec.note || []).length) panel.append(el("div", { class: "history" }, el("div", { class: "lab" }, "Cronologia"), (rec.note || []).slice().reverse().map(n => el("div", { class: "hist" }, el("span", { class: "muted" }, `${n.quando} – ${n.chi}: `), n.testo))));
+    if ((rec.note || []).length) panel.append(el("div", { class: "history" }, el("div", { class: "lab" }, "Cronologia delle modifiche e annotazioni"), (rec.note || []).slice().reverse().map(n => el("div", { class: "hist" + (n.tipo === "modifica" ? " mod" : "") }, el("span", { class: "muted" }, `${n.quando} – ${n.chi}: `),
+      n.tipo === "modifica" ? "ha modificato " + (n.campi || []).map(k => labelOf(F, k)).join(", ") : n.testo))));
     const actions = (sticky) => el("div", { class: "bottom-actions" + (sticky ? " sticky" : "") },
+      sticky ? el("button", { class: "btn back-btn", type: "button", onclick: () => { if (cur.dirty && !confirmLeave()) return; renderHome(); } }, "← Elenco") : null,
       (!citizen && !puoInterno(rec.type)) ? el("span", { class: "muted" }, "🔒 Sola lettura") : el("button", { class: "btn primary", onclick: save }, cur.isNew ? "Salva nell'archivio" : "Salva le modifiche"),
       el("button", { class: "btn", onclick: () => makePdf(false) }, "Genera PDF"),
       connected() && !cur.isNew ? el("button", { class: "btn", onclick: () => makePdf(true) }, "Genera PDF e archivia su Drive") : null,
-      meta.pdf ? el("a", { class: "btn ghost", href: meta.pdf, target: "_blank", rel: "noopener" }, "PDF archiviato") : null);
+      meta.pdf ? el("a", { class: "btn ghost", href: meta.pdf, target: "_blank", rel: "noopener" }, "PDF archiviato") : null,
+      (rec.id.startsWith("LOC-") && !cur.draftKey) || (!cur.isNew && isCoord() && connected()) ? el("button", { class: "btn danger-ghost", onclick: () => eliminaDialog(rec) }, rec.id.startsWith("LOC-") ? "Elimina bozza" : "Elimina pratica") : null);
     if (citizen && !cur.isNew) {
       main.append(panel, actions());
-      const head = cur.subheadEl = el("div", { class: "subhead" }, el("h3", {}, meta.origine === "Direttivo" ? "Dati della comunicazione (Direttivo" + (rec.inserito_da ? " – " + rec.inserito_da : "") + ")" : "Dati inviati dal cittadino"),
-        el("button", { class: "link small", onclick: () => { cur.editCitizen = !cur.editCitizen; rec.values = cur.store.values; rec.riservato = cur.rstore.values; const keep = { st: statoSel.value, as: assIn.value, no: notaIn.value, rv: cur.rstore.values }; renderRecord(); $("#r_stato").value = keep.st; $("#r_assegnato").value = keep.as; $("#r_nota").value = keep.no; } }, cur.editCitizen ? "Blocca i dati del cittadino" : "Correggi i dati del cittadino"));
+      const dirAltro = meta.origine === "Direttivo" && rec.inserito_da && rec.inserito_da !== S.settings.operatore?.nome;
+      const head = cur.subheadEl = el("div", { class: "subhead" }, el("h3", {}, meta.origine === "Direttivo" ? "Comunicazione del Direttivo – compilata da " + (rec.inserito_da || "operatore") : "Dati inviati dal cittadino"),
+        dirAltro ? el("span", { class: "muted small" }, "🔒 Può modificarla solo " + rec.inserito_da + ": tu puoi aggiungere annotazioni ed eventi allo storico") : el("button", { class: "link small", onclick: () => { cur.editCitizen = !cur.editCitizen; rec.values = cur.store.values; rec.riservato = cur.rstore.values; const keep = { st: statoSel.value, as: assIn.value, no: notaIn.value, rv: cur.rstore.values }; renderRecord(); $("#r_stato").value = keep.st; $("#r_assegnato").value = keep.as; $("#r_nota").value = keep.no; } }, cur.editCitizen ? (meta.origine === "Direttivo" ? "Blocca la modifica" : "Blocca i dati del cittadino") : (meta.origine === "Direttivo" ? "Modifica il contenuto" : "Correggi i dati del cittadino")));
       main.append(head);
     }
     const formBox = el("div"); main.append(formBox);
-    UI.renderForm(F, cur.store, formBox, { box: !citizen || cur.isNew });
+    UI.renderForm(F, cur.store, formBox, { box: (!citizen || cur.isNew) && !cur.direttivo });
+    if (citizen && (cur.direttivo || meta.origine === "Direttivo")) {          // comunicazione del Direttivo: niente firma né consenso, solo il nominativo di chi compila
+      const autore = rec.inserito_da || S.settings.operatore?.nome || "";
+      formBox.querySelectorAll("section.sec").forEach(sct => { if (sct.querySelector('.field[data-id="consenso_dati"]')) sct.replaceWith(el("section", { class: "sec dir-firma" }, el("h3", {}, "Compilata da"),
+        el("p", {}, el("b", {}, autore), " – Consiglio Direttivo del Comitato", cur.isNew ? "" : " · " + String(meta.ricevuto || "").slice(0, 10)),
+        el("p", { class: "hint" }, "Le comunicazioni del Direttivo non hanno firma: vale il nominativo di chi le compila. Le modifiche al contenuto restano a chi l'ha compilata; gli altri operatori aggiungono annotazioni ed eventi allo storico."))); });
+      const nm = formBox.querySelector('.field[data-id="nome"] input'); if (nm) { nm.readOnly = true; nm.title = "Nominativo di chi compila"; }
+      const lb = formBox.querySelector('.field[data-id="nome"] .lab'); if (lb) lb.firstChild.textContent = "Compilata da (Direttivo) ";
+    }
     const att = UI.renderAttachments(cur.store, { readonly: !citizen && !puoInterno(rec.type), title: F.attachTitle || "Foto e allegati", hint: "Le foto e i PDF vengono inseriti nel PDF finale; gli altri file vengono incorporati come allegati.", onOpen: openAtt });
     const secs = formBox.querySelectorAll("section.sec");
     if (citizen && !cur.isNew) formBox.append(att); else formBox.insertBefore(att, secs[secs.length - 1]);
     if (!citizen || cur.isNew) { main.append(panel); }
     if (!citizen && !cur.isNew) panel.after(firmePanel(rec));
+    if (citizen && !cur.isNew && !rec.id.startsWith("LOC-")) panel.after(fascicoloPanel(rec));
     main.append(actions(true));
     mChrome();
     if (isM()) { main.className = "mmain mrec"; const o = { main, rec, F, meta, citizen, panel, statoSel, formBox, att, subhead: citizen && !cur.isNew ? cur.subheadEl : null }; if (cur.isNew) mWizard(o); else mRecord(o); }
     window.scrollTo(0, 0);
   }
-  function confirmLeave() { return window.confirm ? window.confirm("Ci sono modifiche non salvate. Uscire comunque?") : true; }
+  function confirmLeave() { if (cur && cur.isNew && cur.draftKey) return true;   // il modulo nuovo resta salvato come bozza su questo dispositivo
+    return window.confirm ? window.confirm("Ci sono modifiche non salvate. Uscire comunque?") : true; }
 
   /* Salvataggio di PDF e allegati. Sul telefono (soprattutto iPhone con l'app sulla schermata Home) il
      download diretto non funziona bene: si mostra un pannello con «Condividi / Salva su File» e «Apri». */
@@ -2782,22 +3169,32 @@ const PDFGEN = (function () {
     return { miss, stato: $("#r_stato").value, assegnato: ($("#r_assegnato") || {}).value || "", nota: $("#r_nota").value.trim() };
   }
 
+  let saving = false;
   async function save() {
+    if (saving) return;                                     // niente doppio salvataggio
+    saving = true; document.querySelectorAll(".bottom-actions .btn.primary, .mactions .btn.primary").forEach(b => b.disabled = true);
+    try { await save0(); } finally { saving = false; document.querySelectorAll(".bottom-actions .btn.primary, .mactions .btn.primary").forEach(b => b.disabled = false); }
+  }
+  async function save0() {
     const { rec, F } = cur; const c = collect();
     if (cur.direttivo || rec.meta?.origine === "Direttivo") c.miss = c.miss.filter(m => !NON_RICHIESTI_DIRETTIVO.includes(m.f.id));
     if (c.miss.length && F.group === "cittadini" && cur.isNew) { UI.markMissing($("#main"), c.miss); toast(`Mancano ${c.miss.length} voci obbligatorie del modulo.`, "warn"); return; }
     const newAtts = cur.store.atts.filter(a => a.local).map(a => ({ kind: a.kind, name: a.name, mime: a.mime, title: a.title, desc: a.desc, b64: a.kind === "image" ? a.data.split(",")[1] : a.b64 }));
     if (cur.isNew) {
-      const payload = { type: rec.type, values: cur.store.values, riservato: cur.rstore.values, stato: c.stato, sigs: Object.fromEntries(Object.entries(cur.store.sigs).filter(([k, v]) => v)), atts: newAtts };
+      rec.token = rec.token || newToken();
+      const payload = { type: rec.type, token: rec.token, values: cur.store.values, riservato: cur.rstore.values, stato: c.stato, sigs: Object.fromEntries(Object.entries(cur.store.sigs).filter(([k, v]) => v)), atts: newAtts };
       rec.values = cur.store.values; rec.riservato = cur.rstore.values; rec.sigs = cur.store.sigs; rec.atts = cur.store.atts; rec.meta.stato = "Da sincronizzare";
       if (c.nota) rec.note = [...(rec.note || []), { quando: new Date().toLocaleString("it-IT"), chi: S.settings.operatore?.nome || "", testo: c.nota }];
       await DB.set("rec:" + rec.id, rec);
       if (connected()) {
-        try { const r = await api("create", { payload, origine: cur.origine }); await DB.del("rec:" + rec.id); toast(`Salvato nell'archivio con il numero ${r.id}.`, "ok"); await sync({ quiet: true, keepView: true }); return openRecord(r.id); }
+        try { const r = await api("create", { payload, origine: cur.origine }); await DB.del("rec:" + rec.id); await dropDraft(cur);
+          const q = S.outbox.findIndex(j => j.op === "create" && j.localId === rec.id); if (q >= 0) { S.outbox.splice(q, 1); await saveOutbox(); }
+          toast(r.duplicato ? `Già registrato nell'archivio con il numero ${r.id}: nessuna copia creata.` : `Salvato nell'archivio con il numero ${r.id}.`, "ok"); await sync({ quiet: true, keepView: true }); return openRecord(r.id); }
         catch (e) { if (!e.network) { toast(e.message, "warn"); return; } }
       }
       const prev = S.outbox.find(j => j.op === "create" && j.localId === rec.id);
       if (prev) { prev.payload = payload; await saveOutbox(); } else await queue({ op: "create", localId: rec.id, payload, origine: cur.origine });
+      await dropDraft(cur);
       cur.dirty = false;
       toast(connected() ? "Senza connessione: salvato su questo dispositivo, verrà inviato alla prossima sincronizzazione." : "Salvato su questo dispositivo.", "ok");
       return renderRecord();
@@ -2849,6 +3246,12 @@ const PDFGEN = (function () {
         atts.push(x);
       }
       const meta = { id: cur.isNew ? "" : rec.id, stato: c.stato, ricevuto: rec.meta?.ricevuto, origine: rec.meta?.origine || cur.origine, inserito: rec.inserito_da || (cur.direttivo ? S.settings.operatore?.nome : ""), assegnato: c.assegnato, note: [...(rec.note || []), ...(c.nota ? [{ quando: "nuova", chi: S.settings.operatore?.nome || "", testo: c.nota }] : [])] };
+      meta.autore = meta.inserito || "";
+      if (meta.note) meta.note = meta.note.map(n => n.tipo === "modifica" ? { ...n, testo: "Modificate le voci: " + (n.campi || []).map(k => labelOf(F, k)).join(", ") } : n);
+      if (rec.fascicolo) { const fz = rec.fascicolo, voci = [];
+        (fz.collegate || []).forEach(c => voci.push({ k: sortKey(c.ricevuto), data: String(c.ricevuto || "").slice(0, 10), titolo: (c.id === fz.capofila ? "Prima comunicazione " : "Comunicazione collegata ") + c.id + " – " + (FORMS[c.type]?.short || ""), testo: c.oggetto || "", nota: "Stato: " + (c.stato || "") }));
+        (fz.storico || []).forEach(e => voci.push({ k: evKey(e), data: dmy(e.data), titolo: e.tipo + (e.soggetto ? " – " + e.soggetto : ""), testo: e.testo, nota: `Registrato da ${e.chi} il ${e.registrato}` + ((e.atts || []).length ? " · allegati: " + e.atts.map(a => a.name).join(", ") : "") }));
+        voci.sort((a, b) => a.k.localeCompare(b.k)); meta.fascicolo = { capofila: fz.capofila, collegate: fz.collegate, storico: fz.storico, voci }; }
       if (F.group === "interno" && !cur.isNew) { meta.firme = (rec.firme || []).map(x => ({ ...x, img: rec.firmeImg?.[x.fileId] })); meta.firmeAttese = (rec.meta?.coordinatori || []).filter(n => !(rec.firme || []).some(x => x.nome === n)); }
       const sigs = { ...cur.store.sigs };
       if (rec.type === "verbale_direttivo" && !sigs.firma && (meta.firme || []).length) {     // il Coordinatore che presiede: usa la sua firma grafica, se ha firmato
@@ -2911,7 +3314,7 @@ const PDFGEN = (function () {
         opts.icon ? null : el("span", { class: "mcard-k" }, el("span", { class: "dotc", style: `--c:${colT(i.type)}` }), el("b", {}, F.short || i.type),
           i.origine === "Direttivo" ? el("span", { class: "tag-dir" }, "Direttivo") : null, el("span", { class: "mono" }, i.id.startsWith("LOC-") ? "bozza" : i.id)),
         el("span", { class: "mcard-t" }, i.oggetto || "(senza oggetto)"),
-        el("span", { class: "mcard-s" }, stBadge(i.stato), daFirmare(i) ? el("span", { class: "tag-firma" }, "Da firmare") : (i.firme || []).length ? el("span", { class: "tag-firmato" }, "✔ firme " + i.firme.length) : null, el("span", {}, [opts.icon ? F.short : i.zona, ddmm(i.ricevuto)].filter(Boolean).join(" · ")))));
+        el("span", { class: "mcard-s" }, stBadge(i.stato), fascBadge(i), daFirmare(i) ? el("span", { class: "tag-firma" }, "Da firmare") : (i.firme || []).length ? el("span", { class: "tag-firmato" }, "✔ firme " + i.firme.length) : null, el("span", {}, [opts.icon ? F.short : i.zona, ddmm(i.ricevuto)].filter(Boolean).join(" · ")))));
   }
   function mChips(keys, cur0, onPick, allLabel) {
     return el("div", { class: "mchips" }, [["", allLabel || "Tutte"], ...keys.map(k => [k, PLUR[k] || FORMS[k].short])].map(([k, l]) =>
@@ -2941,7 +3344,8 @@ const PDFGEN = (function () {
       if (f.stato) list.append(el("button", { type: "button", class: "mchip on solo", onclick: () => { f.stato = ""; renderHome(); } }, "Stato: " + f.stato, ic("close")));
       if (!all.length) list.append(el("p", { class: "empty" }, connected() && !S.lastSync ? "Tocca ⟳ per scaricare le pratiche." : "Nessuna comunicazione."));
       all.slice(0, 300).forEach(i => list.append(mCard(i))); };
-    main.append(mSearch(f, draw), mChips(ORDER.cittadini, f.type, k => { f.type = k; renderHome(); }), list);
+    main.append(mSearch(f, draw), mChips(ORDER.cittadini, f.type, k => { f.type = k; renderHome(); }), list,
+      connected() ? el("button", { type: "button", class: "btn mxl", onclick: () => excelDialog(f.type ? [f.type] : ORDER.cittadini) }, ic("description"), "Scarica in Excel") : null);
     draw();
   }
 
@@ -2961,7 +3365,8 @@ const PDFGEN = (function () {
     const draw = () => { list.innerHTML = ""; const all = mFilter([...loc, ...its], f);
       if (!all.length) list.append(el("p", { class: "empty" }, "Nessun documento."));
       all.forEach(i => list.append(mCard(i, { icon: true }))); };
-    main.append(mChips(ORDER.interno, f.type, k => { f.type = k; renderHome(); }, "Tutti"), list);
+    main.append(mChips(ORDER.interno, f.type, k => { f.type = k; renderHome(); }, "Tutti"), list,
+      connected() ? el("button", { type: "button", class: "btn mxl", onclick: () => excelDialog(f.type ? [f.type] : ORDER.interno) }, ic("description"), "Scarica in Excel") : null);
     draw();
   }
 
@@ -2983,7 +3388,7 @@ const PDFGEN = (function () {
   /* scheda pratica sul telefono: barra in alto, stato a riquadri, sezioni a scomparsa, azioni fisse in basso */
   function mRecord(o) {
     const { main, rec, F, meta, citizen, panel, statoSel, formBox, att, subhead } = o;
-    main.querySelectorAll(".bottom-actions, .form-head").forEach(x => x.remove());
+    main.querySelectorAll(".bottom-actions, .form-head, .recbar").forEach(x => x.remove());
     const back = el("div", { class: "mbar" },
       el("button", { type: "button", class: "mback", onclick: () => { if (cur.dirty && !confirmLeave()) return; renderHome(); } }, ic("chevron_left"), citizen ? "Pratiche" : "Interni"),
       el("button", { type: "button", class: "mic-btn", "aria-label": "Altre azioni", onclick: () => mMenu(o) }, ic("more_vert")));
@@ -3011,7 +3416,7 @@ const PDFGEN = (function () {
     const blocks = [];
     if (ris && citizen) { ris.remove(); blocks.push(acc("lock", "Dati riservati del Comitato", ris)); }
     if (hist) { hist.remove(); hist.querySelector(".lab")?.remove(); blocks.push(acc("history", "Cronologia", hist, (rec.note || []).length)); }
-    const fs = main.querySelector(".firme-sec");
+    const fs = main.querySelector(".firme-sec"), fz = main.querySelector(".fasc");
     if (citizen && !cur.isNew) {
       if (subhead) subhead.remove();
       const box = el("div", {}, subhead ? subhead.querySelector("button") : null, formBox);
@@ -3022,6 +3427,7 @@ const PDFGEN = (function () {
     } else {
       panel.after(...blocks);
     }
+    if (fz) panel.after(fz);
     if (fs) panel.after(fs);
     // azioni fisse
     main.append(el("div", { class: "mactions" },
@@ -3037,7 +3443,8 @@ const PDFGEN = (function () {
         row("picture_as_pdf", "Genera PDF", () => makePdf(false)),
         connected() && !cur.isNew ? row("cloud_upload", "Genera PDF e archivia su Drive", () => makePdf(true)) : null,
         meta.pdf ? row("description", "Apri il PDF archiviato", () => window.open(meta.pdf, "_blank", "noopener")) : null,
-        citizen && !cur.isNew ? row("edit", cur.editCitizen ? "Blocca i dati del cittadino" : "Correggi i dati del cittadino", () => { cur.editCitizen = !cur.editCitizen; rec.values = cur.store.values; rec.riservato = cur.rstore.values; renderRecord(); }) : null].filter(Boolean)),
+        citizen && !cur.isNew && !(meta.origine === "Direttivo" && rec.inserito_da && rec.inserito_da !== S.settings.operatore?.nome) ? row("edit", cur.editCitizen ? "Blocca i dati del cittadino" : "Correggi i dati del cittadino", () => { cur.editCitizen = !cur.editCitizen; rec.values = cur.store.values; rec.riservato = cur.rstore.values; renderRecord(); }) : null,
+        (rec.id.startsWith("LOC-") && !cur.draftKey) || (!cur.isNew && isCoord() && connected()) ? row("delete", rec.id.startsWith("LOC-") ? "Elimina bozza" : "Elimina pratica", () => eliminaDialog(rec)) : null].filter(Boolean)),
       el("button", { type: "button", class: "link", onclick: close }, "Chiudi")));
     document.body.append(sh);
   }
@@ -3045,7 +3452,7 @@ const PDFGEN = (function () {
   /* nuovi moduli sul telefono: un passo per sezione */
   function mWizard(o) {
     const { main, rec, F, panel, formBox, att } = o;
-    main.querySelectorAll(".bottom-actions, .form-head").forEach(x => x.remove());
+    main.querySelectorAll(".bottom-actions, .form-head, .recbar").forEach(x => x.remove());
     const secs = [...formBox.querySelectorAll(":scope > section.sec")].filter(x => x !== att && !x.contains(att));
     const last = el("section", { class: "sec" }, el("h3", {}, F.group === "interno" ? "Allegati e stato" : "Foto e allegati"));
     att.remove(); last.append(att); if (panel.isConnected) { panel.remove(); } last.append(panel); formBox.append(last);
@@ -3105,6 +3512,8 @@ const PDFGEN = (function () {
     $("#btn-sync").addEventListener("click", () => connected() ? sync({ keepView: S.view === "record" }) : renderSettings());
     $("#btn-settings").addEventListener("click", () => renderSettings());
     setupInstall();
+    const hdrH = () => { const h = document.querySelector("header.top"); document.documentElement.style.setProperty("--hdrh", (h && getComputedStyle(h).position === "sticky" ? h.offsetHeight : 0) + "px"); };
+    hdrH(); window.addEventListener("resize", hdrH);
     const mlogo = $("#mlogo"); if (mlogo) mlogo.src = LOGO_CREST;
     $("#msync")?.addEventListener("click", () => connected() ? sync({ keepView: S.view === "record" }) : renderSettings());
     document.querySelectorAll("#mnav [data-v]").forEach(b => b.addEventListener("click", () => { if (S.view === "record" && cur && cur.dirty && !confirmLeave()) return; mNav(b.dataset.v); }));

@@ -1081,6 +1081,9 @@ body.m .firma-row{flex-wrap:wrap}body.m .firma-t{min-width:60%}body.m .firma-img
 .hist.mod{color:#444}.hist.mod::before{content:"✎ ";color:#1f6fb2}
 .small{font-size:12.5px}
 @media (max-width:700px){.recbar{display:none}.ev-grid{grid-template-columns:1fr}.tl-i{flex-direction:column;gap:0}.tl-d{width:auto}}
+
+.riscontro{border:1px solid #cfe0f2;background:#f4f8fd;border-radius:8px;padding:8px 12px;margin:8px 0}
+.riscontro .lab{color:#1d3f7a}.riscontro textarea{margin-top:6px}.ris-old{margin:2px 0}
 </style>
 </head>
 <body>
@@ -1606,15 +1609,15 @@ const UI = (function () {
     /* Sfondi della mappa. Il server di OpenStreetMap (tile.openstreetmap.org) blocca con errore 403 le pagine aperte
        da file o senza indirizzo di provenienza: si usano quindi CARTO (dati OpenStreetMap) ed Esri, con passaggio
        automatico al successivo se uno non risponde. */
-    // sfondi gratuiti: OpenStreetMap (predefinito), satellite Esri con nomi di strade e località, CARTO come riserva
+    // sfondi gratuiti: satellite Esri con nomi di strade e località (predefinito), OpenStreetMap, CARTO come riserva
     SFONDI: [
       { k: "osm", nome: "Mappa", url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", o: { maxZoom: 19, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a>" } },
-      { k: "sat", nome: "Satellite", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", o: { maxZoom: 19, attribution: "Immagini © Esri, Maxar, Earthstar Geographics" },
+      { k: "sat", nome: "Satellite", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", o: { maxZoom: 20, maxNativeZoom: 19, attribution: "Immagini © Esri, Maxar, Earthstar Geographics" },
         sopra: ["https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}", "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"] },
       { k: "carto", nome: "Chiara", url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", o: { subdomains: "abcd", maxZoom: 20, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a> © <a href=\"https://carto.com/attributions\" target=\"_blank\" rel=\"noopener\">CARTO</a>" } },
     ],
     tiles(map) {                       // sfondo con pulsanti Mappa / Satellite, scelta ricordata, ripiego automatico se il server non risponde
-      const S0 = GEO.SFONDI, groups = S0.map(x => { const base = L.tileLayer(x.url, x.o); return { base, g: L.layerGroup([base, ...(x.sopra || []).map(u => L.tileLayer(u, { maxZoom: 19 }))]) }; });
+      const S0 = GEO.SFONDI, groups = S0.map(x => { const base = L.tileLayer(x.url, x.o); return { base, g: L.layerGroup([base, ...(x.sopra || []).map(u => L.tileLayer(u, { maxZoom: 20, maxNativeZoom: 19 }))]) }; });
       let cur = -1, ok = 0, err = 0;
       const btns = [];
       const pick = (i, save) => {
@@ -1623,13 +1626,13 @@ const UI = (function () {
         btns.forEach((b, j) => b.classList.toggle("on", j === i));
         if (save) { try { localStorage.setItem("ct-sfondo", S0[i].k); } catch (e) { } }
       };
-      groups.forEach((x, i) => { x.base.on("tileload", () => { if (i === cur) ok++; }); x.base.on("tileerror", () => { if (i !== cur) return; err++; if (!ok && err >= 3 && i === 0) pick(2); }); });
+      groups.forEach((x, i) => { x.base.on("tileload", () => { if (i === cur) ok++; }); x.base.on("tileerror", () => { if (i !== cur) return; err++; if (!ok && err >= 3) { if (i === 1) pick(0); else if (i === 0) pick(2); } }); });
       const Ctl = L.Control.extend({ options: { position: "topright" }, onAdd() {
         const box = L.DomUtil.create("div", "geo-sw"); L.DomEvent.disableClickPropagation(box);
         [0, 1].forEach(i => { const b = L.DomUtil.create("button", "", box); b.type = "button"; b.textContent = S0[i].nome; b.onclick = (e) => { e.preventDefault(); pick(i, true); }; btns.push(b); });
         return box; } });
       new Ctl().addTo(map);
-      let pref = 0; try { pref = Math.max(0, S0.findIndex(x => x.k === localStorage.getItem("ct-sfondo"))); } catch (e) { }
+      let pref = 1; try { const k = localStorage.getItem("ct-sfondo"), j = S0.findIndex(x => x.k === k); if (j >= 0) pref = j; } catch (e) { }   // satellite, salvo scelta diversa
       if (location.protocol === "file:" && pref === 0) pref = 2;      // aperto come file: OpenStreetMap rifiuta le richieste senza indirizzo di provenienza
       pick(pref);
       return groups[pref].base;
@@ -2308,7 +2311,7 @@ const XLSX = (() => {
 <script>"use strict";
 (function () {
   const { $, el, toast, fmtDate, slug, b64ToBytes } = UI;
-  const POLL_MS = window.DEMO_POLL_MS || 3 * 60 * 1000;
+  const POLL_MS = window.DEMO_POLL_MS || 60 * 1000;           // con il numero di revisione un controllo costa pochissimo
 
   /* ============================================================ archivio locale (IndexedDB) */
   const DB = {
@@ -2340,7 +2343,7 @@ const XLSX = (() => {
     S.items = (await DB.get("items")) || [];
     S.outbox = (await DB.get("outbox")) || [];
     S.seen = (await DB.get("seen")) || [];
-    S.lastSync = (await DB.get("lastSync")) || null;
+    S.lastSync = (await DB.get("lastSync")) || null; S.rev = (await DB.get("rev")) || null;
   }
   const saveOutbox = () => DB.set("outbox", S.outbox);
 
@@ -2361,34 +2364,50 @@ const XLSX = (() => {
   const connected = () => !!(S.settings.api && S.settings.key);
 
   /* ============================================================ sincronizzazione */
+  /* Sincronizzazione: prima si inviano le modifiche in coda, poi si chiede l'elenco solo se l'archivio è cambiato
+     (numero di revisione). Le richieste arrivate durante una sincronizzazione vengono eseguite subito dopo. */
+  let syncAgain = null;
   async function sync(opts = {}) {
-    if (!connected() || syncing) return;
-    syncing = true; status("Sincronizzazione…");
+    if (!connected()) return;
+    if (syncing) { syncAgain = { quiet: (syncAgain ? syncAgain.quiet : true) && !!opts.quiet, keepView: (syncAgain ? syncAgain.keepView : true) && !!opts.keepView, full: !!opts.full || !!(syncAgain && syncAgain.full) }; return; }
+    syncing = true; if (!opts.quiet) status("Sincronizzazione…");
     try {
-      await flushOutbox();
-      const r = await api("list");
-      S.items = r.items; await DB.set("items", S.items);
-      if (r.operatore) { S.settings.operatore = r.operatore; await DB.set("settings", S.settings); }
-      S.lastSync = new Date().toISOString(); await DB.set("lastSync", S.lastSync);
-      S.online = true;
-      checkNew(opts.quiet);
-      if (!opts.keepView) renderCurrent();
+      const inviati = await flushOutbox();
+      const r = await withRetry(() => api("list", { rev: opts.full || inviati ? undefined : S.rev }, 60000), opts.quiet ? 1 : 2);
+      if (r.operatore && JSON.stringify(r.operatore) !== JSON.stringify(S.settings.operatore)) { S.settings.operatore = r.operatore; await DB.set("settings", S.settings); }
+      S.lastSync = new Date().toISOString(); DB.set("lastSync", S.lastSync); S.online = true;
+      if (!r.unchanged) {
+        S.items = r.items; S.rev = r.rev; await DB.set("items", S.items); DB.set("rev", S.rev);
+        checkNew(opts.quiet);
+        if (!opts.keepView && S.view !== "record" && S.view !== "settings") renderCurrent(); else mChrome();
+      }
     } catch (e) {
       S.online = !e.network ? S.online : false;
       if (!opts.quiet) toast(e.message, "warn");
-    } finally { syncing = false; status(); }
+    } finally {
+      syncing = false; status();
+      if (syncAgain) { const o = syncAgain; syncAgain = null; setTimeout(() => sync(o), 50); }
+    }
+  }
+  async function withRetry(fn, n) {
+    for (let i = 0; ; i++) { try { return await fn(); } catch (e) { if (!e.network || i >= n) throw e; await new Promise(r => setTimeout(r, 1200 * (i + 1))); } }
   }
 
   async function flushOutbox() {
-    while (S.outbox.length) {
-      const job = S.outbox[0];
-      try { await runJob(job); }
+    let n = 0;
+    for (let i = 0; i < S.outbox.length;) {
+      const job = S.outbox[i];
+      try { await withRetry(() => runJob(job), 1); n++; }
       catch (e) {
-        if (!e.forbidden) throw e;
-        S.outbox.shift(); await saveOutbox();                     // non autorizzato: la copia resta su questo dispositivo
-        toast("Non inviato all'archivio: " + e.message + " Il documento resta salvato su questo dispositivo.", "warn");
+        if (e.network) throw e;                                    // rete assente: si riprova alla prossima sincronizzazione
+        job.tries = (job.tries || 0) + 1; job.err = e.message;
+        if (e.forbidden || job.tries >= 3) {                       // errore dell'archivio ripetuto: il lavoro esce dalla coda, la copia resta sul dispositivo
+          S.outbox.splice(i, 1); await saveOutbox();
+          toast("Non inviato all'archivio: " + e.message + " La copia resta su questo dispositivo.", "warn");
+        } else { await saveOutbox(); i++; }                         // si passa al successivo: un errore non blocca tutta la coda
       }
     }
+    return n;
   }
   async function runJob(job) {
     {
@@ -2491,6 +2510,31 @@ const XLSX = (() => {
           el("p", { class: "hint" }, "Da usare su un computer condiviso, al termine del lavoro.")))].filter(Boolean));
   }
 
+  /* ============================================================ riscontro al cittadino */
+  const ESITO_C = { "Nuovo": "ricevuta", "In lavorazione": "in lavorazione", "Accettato": "accolta", "Inoltrato al Comune / ente": "inoltrata al Comune / all'ente competente", "Respinto": "non accolta", "Chiuso": "conclusa" };
+  const MODELLI = {
+    "In lavorazione": "Il Comitato ha preso in carico la tua comunicazione e la sta approfondendo. Ti terremo informato sugli sviluppi.",
+    "Accettato": "Il Consiglio Direttivo ha accolto la tua comunicazione e la porterà avanti.",
+    "Inoltrato al Comune / ente": "Abbiamo inoltrato la tua comunicazione al Comune / all'ente competente. Ti aggiorneremo appena riceveremo una risposta.",
+    "Respinto": "Il Consiglio Direttivo ha esaminato la tua comunicazione ma non può darle seguito, per questo motivo: ",
+    "Chiuso": "La questione che ci avevi segnalato risulta risolta / conclusa. Grazie per la collaborazione.",
+  };
+  const mailOk = (e) => /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(String(e || "").trim());
+  function riscontroBox(rec, meta, statoSel) {
+    const email = String(rec.values?.email || "").trim(), dir = meta.origine === "Direttivo";
+    const box = el("div", { class: "riscontro" }, el("div", { class: "lab" }, "✉ Riscontro al cittadino"));
+    (rec.riscontri || []).slice(-3).reverse().forEach(r => box.append(el("p", { class: "hint ris-old" }, `Inviato il ${r.quando} da ${r.chi} – esito «${r.esito}»`)));
+    if (dir) { box.append(el("p", { class: "hint" }, "Comunicazione del Direttivo: nessun cittadino da avvisare.")); return box; }
+    if (!mailOk(email)) { box.append(el("p", { class: "hint" }, "Il cittadino non ha indicato un'e-mail valida: il riscontro va dato per telefono o di persona, poi annotalo qui sopra.")); return box; }
+    if (!connected()) { box.append(el("p", { class: "hint" }, "Per inviare il riscontro serve la connessione.")); return box; }
+    const testo = el("textarea", { id: "ris_testo", rows: 3, maxlength: 4000, placeholder: "Messaggio per il cittadino: cosa è stato fatto, esito, prossimi passi. Le annotazioni interne non vengono inviate." });
+    const chk = el("input", { type: "checkbox", id: "ris_on", onchange: () => { area.hidden = !chk.checked; if (chk.checked) { if (!testo.value.trim()) testo.value = MODELLI[statoSel.value] || ""; testo.focus(); } } });
+    const area = el("div", { hidden: true }, testo, el("p", { class: "hint" }, "Arriva a ", el("b", {}, email), " con il numero della pratica e lo stato scelto qui sopra. Viene registrato nella cronologia."));
+    statoSel.addEventListener("change", () => { const m = MODELLI[statoSel.value]; if (statoSel.value !== (meta.stato || "")) { if (!chk.checked) { chk.checked = true; area.hidden = false; } if (m && (!testo.value.trim() || Object.values(MODELLI).includes(testo.value.trim()))) testo.value = m; } });
+    box.append(el("label", { class: "opt single" }, chk, " Invia un aggiornamento al cittadino con l'esito"), area);
+    return box;
+  }
+
   /* ============================================================ fascicolo: comunicazioni collegate e storico */
   const EVENTI = ["Risposta ricevuta", "Sollecito inviato", "Comunicazione inviata", "Intervento eseguito", "Sopralluogo", "Incontro", "Altro"];
   const EV_IC = { "Risposta ricevuta": "📩", "Sollecito inviato": "⏰", "Comunicazione inviata": "📤", "Intervento eseguito": "🛠", "Sopralluogo": "👀", "Incontro": "🤝", "Altro": "•" };
@@ -2524,7 +2568,7 @@ const XLSX = (() => {
       el("button", { class: "btn", type: "button", onclick: () => eventoDialog(rec, root) }, "+ Aggiungi evento allo storico"),
       el("button", { class: "btn", type: "button", onclick: () => collegaDialog(rec, root, isRoot ? "dentro" : "dentro") }, "🔗 Collega un'altra comunicazione"),
       isRoot && !coll.length ? el("button", { class: "link small", type: "button", onclick: () => collegaDialog(rec, root, "fuori") }, "Questa riguarda un problema già segnalato? Collegala alla prima") : null,
-      !isRoot ? el("button", { class: "link small", type: "button", onclick: async () => { if (!confirm("Scollegare " + rec.id + " dal fascicolo di " + root + "?")) return; try { await api("scollega", { id: rec.id }); toast("Comunicazione scollegata.", "ok"); await sync({ quiet: true, keepView: true }); openRecord(rec.id); } catch (e) { toast(e.message, "warn"); } } }, "Scollega dal fascicolo") : null);
+      !isRoot ? el("button", { class: "link small", type: "button", onclick: async () => { if (!confirm("Scollegare " + rec.id + " dal fascicolo di " + root + "?")) return; try { await api("scollega", { id: rec.id }); toast("Comunicazione scollegata.", "ok"); await sync({ quiet: true, keepView: true }); openRecord(rec.id, true); } catch (e) { toast(e.message, "warn"); } } }, "Scollega dal fascicolo") : null);
     sec.append(bar);
     return sec;
   }
@@ -2540,7 +2584,7 @@ const XLSX = (() => {
       its.forEach(i => list.append(el("button", { type: "button", class: "cg-row", onclick: async () => {
         const id = verso === "fuori" ? rec.id : i.id, a = verso === "fuori" ? i.id : root;
         if (!confirm(verso === "fuori" ? `Collegare ${rec.id} al fascicolo di ${i.collegata || i.id}?` : `Collegare ${i.id} al fascicolo di ${root}?`)) return;
-        try { const r = await api("collega", { id, a }); close(); toast(`Collegata al fascicolo di ${r.capofila}.`, "ok"); await sync({ quiet: true, keepView: true }); openRecord(rec.id); } catch (e) { toast(e.message, "warn"); } } },
+        try { const r = await api("collega", { id, a }); close(); toast(`Collegata al fascicolo di ${r.capofila}.`, "ok"); await sync({ quiet: true, keepView: true }); openRecord(rec.id, true); } catch (e) { toast(e.message, "warn"); } } },
         el("b", {}, i.id), " " + (FORMS[i.type]?.short || "") + " · " + String(i.ricevuto || "").slice(0, 10) + (i.zona ? " · " + i.zona : ""), el("br"), el("span", { class: "muted" }, (i.oggetto || "") + (i.collegata ? " (già nel fascicolo " + i.collegata + ")" : "")))));
     };
     q.oninput = draw;
@@ -2558,12 +2602,18 @@ const XLSX = (() => {
     const sogg = el("input", { type: "text", id: "ev_sogg", placeholder: "Es. Comune di Savona – Settore Lavori pubblici, SEA-S, Polizia locale" });
     const testo = el("textarea", { id: "ev_testo", rows: 4, placeholder: "Cosa è successo: contenuto della risposta, intervento eseguito, esito del sopralluogo…" });
     const att = UI.renderAttachments(store, { title: "Allegati (facoltativi)", hint: "Es. la lettera di risposta o la foto dell'intervento.", maxFiles: 6, maxMB: 15, paper: false });
+    const dest = ((rec.fascicolo || {}).collegate || []).map(c => S.items.find(i => i.id === c.id) || c).filter(i => i.origine !== "Direttivo" && mailOk(i.email));
+    const msg = el("textarea", { id: "ev_msg", rows: 3, maxlength: 4000, placeholder: "Messaggio per i cittadini (non includere informazioni riservate)" });
+    const inf = el("input", { type: "checkbox", id: "ev_inf", disabled: !dest.length, onchange: () => { msgBox.hidden = !inf.checked; if (inf.checked && !msg.value.trim()) msg.value = testo.value.trim(); } });
+    const msgBox = el("div", { hidden: true }, msg, el("p", { class: "hint" }, "Riceveranno l'e-mail: " + dest.map(i => i.id + (i.nome ? " (" + i.nome + ")" : "")).join(", ") + "."));
+    const infBox = el("div", { class: "riscontro" }, el("label", { class: "opt single" }, inf, " ✉ Informa via e-mail i cittadini del fascicolo" + (dest.length ? " (" + dest.length + ")" : " – nessuno ha indicato un'e-mail")), msgBox);
     const go = el("button", { type: "button", class: "btn primary", id: "ev_go", onclick: async () => {
       if (testo.value.trim().length < 3) { toast("Descrivi l'evento.", "warn"); return; }
       go.disabled = true; status("Registro l'evento…");
-      try { await api("evento", { id: rec.id, evento: { tipo: tipo.value, data: data.value, soggetto: sogg.value.trim(), testo: testo.value.trim(),
+      if (inf.checked && !msg.value.trim()) { toast("Scrivi il messaggio per i cittadini.", "warn"); go.disabled = false; return; }
+      let r; try { r = await api("evento", { id: rec.id, evento: { tipo: tipo.value, data: data.value, soggetto: sogg.value.trim(), testo: testo.value.trim(), informa: inf.checked, messaggio: msg.value.trim(),
           atts: store.atts.map(a => ({ name: a.name, mime: a.mime, b64: a.kind === "image" ? a.data.split(",")[1] : a.b64 })) } }, 180000);
-        close(); toast("Evento aggiunto allo storico del fascicolo " + root + ".", "ok"); await sync({ quiet: true, keepView: true }); openRecord(rec.id); }
+        close(); toast("Evento aggiunto allo storico del fascicolo " + root + "." + ((r.informati || []).length ? " Cittadini informati: " + r.informati.join(", ") + "." : ""), "ok"); await sync({ quiet: true, keepView: true }); openRecord(rec.id, true); }
       catch (e) { go.disabled = false; toast(e.message, "warn"); } finally { status(); }
     } }, "Aggiungi allo storico");
     const sh = el("div", { class: "sheet-bg", onclick: e => { if (e.target === sh) close(); } }, el("div", { class: "sheet msheet wide-sheet", role: "dialog", "aria-label": "Evento" },
@@ -2571,7 +2621,7 @@ const XLSX = (() => {
       el("div", { class: "ev-grid" }, el("div", { class: "field" }, el("label", { class: "lab", for: "ev_tipo" }, "Tipo"), tipo), el("div", { class: "field" }, el("label", { class: "lab", for: "ev_data" }, "Data"), data)),
       el("div", { class: "field" }, el("label", { class: "lab", for: "ev_sogg" }, "Soggetto (chi ha risposto, chi è intervenuto, a chi si è scritto)"), sogg),
       el("div", { class: "field" }, el("label", { class: "lab", for: "ev_testo" }, "Descrizione *"), testo),
-      att, el("div", { class: "row-btns" }, go, el("button", { type: "button", class: "link", onclick: close }, "Annulla"))));
+      att, infBox, el("div", { class: "row-btns" }, go, el("button", { type: "button", class: "link", onclick: close }, "Annulla"))));
     document.body.append(sh); testo.focus();
   }
 
@@ -2765,7 +2815,7 @@ const XLSX = (() => {
         btn.disabled = true; status("Firmo il documento…");
         try { const r = await api("firma", { id: rec.id, accetto: true, version: meta.version });
           toast(r.attese.length ? `Documento firmato. Avviso inviato a: ${(r.avvisati || []).join(", ") || "nessuno (manca l'e-mail)"}.` : "Documento firmato da tutti i Coordinatori.", "ok");
-          await sync({ quiet: true, keepView: true }); openRecord(rec.id); }
+          await sync({ quiet: true, keepView: true }); openRecord(rec.id, true); }
         catch (e) { btn.disabled = false; toast(e.message, "warn"); if (/carica la tua firma/i.test(e.message)) renderSettings(); }
         finally { status(); }
       } }, ic("draw"), "Firma il documento");
@@ -3035,8 +3085,14 @@ const XLSX = (() => {
   }
   async function dropDraft(c) { clearTimeout(draftTimer); if (c && c.draftKey) { await DB.del(c.draftKey); c.draftKey = null; } }
 
-  async function openRecord(id) {
+  async function openRecord(id, fresh) {
     let rec = await DB.get("rec:" + id);
+    const local = !!rec && !rec.meta?.pending && rec.meta?.version;
+    if (local && !fresh && connected() && !id.startsWith("LOC-")) {       // apre subito la copia del dispositivo, poi controlla l'archivio
+      const conflict0 = await DB.get("conflict:" + id);
+      cur = { rec, F: FORMS[rec.type], isNew: false, origine: rec.meta?.origine, editCitizen: FORMS[rec.type].group === "interno", conflict: conflict0 };
+      renderRecord(); refreshRecord(id, rec.meta.version); return;
+    }
     if (connected() && !id.startsWith("LOC-")) {
       try {
         status("Apro " + id + "…");
@@ -3083,9 +3139,10 @@ const XLSX = (() => {
         el("div", { class: "field" }, el("label", { class: "lab", for: "r_stato" }, "Stato"), statoSel),
         citizen ? el("div", { class: "field" }, el("label", { class: "lab", for: "r_assegnato" }, "Assegnata a"), assIn) : null));
     if (citizen && F.riservato) { const box = el("div"); F.riservato.forEach(f => box.append(UI.renderField(f, cur.rstore))); cur.rstore.root = box; panel.append(box); UI.refreshVisibility(cur.rstore); }
-    panel.append(el("div", { class: "field" }, el("label", { class: "lab", for: "r_nota" }, "Nuova annotazione"), notaIn));
+    panel.append(el("div", { class: "field" }, el("label", { class: "lab", for: "r_nota" }, "Nuova annotazione interna"), notaIn));
+    if (citizen && !cur.isNew) panel.append(riscontroBox(rec, meta, statoSel));
     if ((rec.note || []).length) panel.append(el("div", { class: "history" }, el("div", { class: "lab" }, "Cronologia delle modifiche e annotazioni"), (rec.note || []).slice().reverse().map(n => el("div", { class: "hist" + (n.tipo === "modifica" ? " mod" : "") }, el("span", { class: "muted" }, `${n.quando} – ${n.chi}: `),
-      n.tipo === "modifica" ? "ha modificato " + (n.campi || []).map(k => labelOf(F, k)).join(", ") : n.testo))));
+      n.tipo === "riscontro" ? "✉ " + n.testo : n.tipo === "modifica" ? "ha modificato " + (n.campi || []).map(k => labelOf(F, k)).join(", ") : n.testo))));
     const actions = (sticky) => el("div", { class: "bottom-actions" + (sticky ? " sticky" : "") },
       sticky ? el("button", { class: "btn back-btn", type: "button", onclick: () => { if (cur.dirty && !confirmLeave()) return; renderHome(); } }, "← Elenco") : null,
       (!citizen && !puoInterno(rec.type)) ? el("span", { class: "muted" }, "🔒 Sola lettura") : el("button", { class: "btn primary", onclick: save }, cur.isNew ? "Salva nell'archivio" : "Salva le modifiche"),
@@ -3120,6 +3177,23 @@ const XLSX = (() => {
     mChrome();
     if (isM()) { main.className = "mmain mrec"; const o = { main, rec, F, meta, citizen, panel, statoSel, formBox, att, subhead: citizen && !cur.isNew ? cur.subheadEl : null }; if (cur.isNew) mWizard(o); else mRecord(o); }
     window.scrollTo(0, 0);
+  }
+  async function refreshRecord(id, have) {
+    try {
+      const r = await withRetry(() => api("get", { id, have }), 1); S.online = true;
+      if (!cur || cur.rec.id !== id || S.view !== "record") return;
+      if (r.unchanged) {
+        if (r.fascicolo && JSON.stringify(r.fascicolo) !== JSON.stringify(cur.rec.fascicolo)) {
+          cur.rec.fascicolo = r.fascicolo; DB.set("rec:" + id, cur.rec);
+          const old = document.querySelector(".fasc"); if (old) old.replaceWith(fascicoloPanel(cur.rec));
+        }
+        return;
+      }
+      const rec = r.record; rec.sigs = rec.sigData || {}; delete rec.sigData; await DB.set("rec:" + id, rec);
+      if (rec.meta.stato === "Nuovo" && !S.seen.includes(id)) { S.seen.push(id); DB.set("seen", S.seen); }
+      if (cur.dirty) { toast("La pratica è stata aggiornata nell'archivio da " + (rec.meta.aggiornato_da || "un altro operatore") + ": salvando vedrai l'avviso di conflitto.", "warn"); return; }
+      const y = window.scrollY; cur.rec = rec; renderRecord(); window.scrollTo(0, y);
+    } catch (e) { if (e.network) { S.online = false; status(); } }
   }
   function confirmLeave() { if (cur && cur.isNew && cur.draftKey) return true;   // il modulo nuovo resta salvato come bozza su questo dispositivo
     return window.confirm ? window.confirm("Ci sono modifiche non salvate. Uscire comunque?") : true; }
@@ -3206,7 +3280,9 @@ const XLSX = (() => {
       values: (F.group === "interno" || cur.editCitizen) ? cur.store.values : undefined,
       assegnato: F.group === "cittadini" ? c.assegnato : undefined,
       sigs: Object.fromEntries(Object.keys(cur.store.sigsChanged || {}).map(k => [k, cur.store.sigs[k] || ""])),
-      addAtts: newAtts, atts: cur.store.atts.filter(a => !a.local) };
+      addAtts: newAtts, atts: cur.store.atts.filter(a => !a.local),
+      riscontro: $("#ris_on") && $("#ris_on").checked && $("#ris_testo").value.trim() ? { testo: $("#ris_testo").value.trim() } : undefined };
+    if (body.riscontro && !confirm("Inviare al cittadino (" + (rec.values?.email || "") + ") l'aggiornamento con esito «" + (ESITO_C[c.stato] || c.stato) + "»?")) return;
     await doUpdate(body);
   }
 
@@ -3219,10 +3295,10 @@ const XLSX = (() => {
     if (connected()) {
       try {
         const r = await api("update", body);
-        if (r.conflict) { await DB.set("conflict:" + rec.id, body); toast(r.error, "warn"); return openRecord(rec.id); }
-        toast("Modifiche salvate nell'archivio.", "ok");
-        const it = S.items.find(i => i.id === rec.id); if (it) { it.stato = body.stato || it.stato; it.assegnato = body.assegnato ?? it.assegnato; DB.set("items", S.items); }
-        return openRecord(rec.id);
+        if (r.conflict) { await DB.set("conflict:" + rec.id, body); toast(r.error, "warn"); return openRecord(rec.id, true); }
+        toast(r.riscontro ? "Modifiche salvate e riscontro inviato a " + r.riscontro + "." : "Modifiche salvate nell'archivio.", "ok");
+        const it = S.items.find(i => i.id === rec.id); if (it) { it.stato = body.stato || it.stato; it.assegnato = body.assegnato ?? it.assegnato; it.version = r.version; DB.set("items", S.items); }
+        return openRecord(rec.id, true);
       } catch (e) { if (!e.network) { toast(e.message, "warn"); return; } }
     }
     rec.meta.pending = true;
@@ -3504,18 +3580,22 @@ const XLSX = (() => {
   }
 
   /* ============================================================ avvio */
-  function startPoll() { clearInterval(pollTimer); if (connected()) pollTimer = setInterval(() => { if (navigator.onLine) sync({ quiet: true, keepView: S.view === "record" }); }, POLL_MS); }
+  function startPoll() { clearInterval(pollTimer); if (connected()) pollTimer = setInterval(() => { if (navigator.onLine && document.visibilityState !== "hidden") sync({ quiet: true, keepView: S.view === "record" }); }, POLL_MS); }
+  const syncSoon = () => { if (!connected() || !navigator.onLine) return; const age = Date.now() - Date.parse(S.lastSync || 0); if (S.outbox.length || !(age < 20000)) sync({ quiet: true, keepView: S.view === "record" || S.view === "settings" }); };
+  window.addEventListener("online", () => { S.online = true; status(); syncSoon(); });
+  window.addEventListener("offline", () => { S.online = false; status(); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") syncSoon(); });
 
   document.addEventListener("DOMContentLoaded", async () => {
     $("#logo").src = LOGO_DATA; if ($("#foot-logo")) $("#foot-logo").src = LOGO_CREST;
     const br = $("#brand"); br.addEventListener("click", () => renderHome()); br.addEventListener("keydown", e => { if (e.key === "Enter") renderHome(); });
-    $("#btn-sync").addEventListener("click", () => connected() ? sync({ keepView: S.view === "record" }) : renderSettings());
+    $("#btn-sync").addEventListener("click", () => connected() ? sync({ keepView: S.view === "record", full: true }) : renderSettings());
     $("#btn-settings").addEventListener("click", () => renderSettings());
     setupInstall();
     const hdrH = () => { const h = document.querySelector("header.top"); document.documentElement.style.setProperty("--hdrh", (h && getComputedStyle(h).position === "sticky" ? h.offsetHeight : 0) + "px"); };
     hdrH(); window.addEventListener("resize", hdrH);
     const mlogo = $("#mlogo"); if (mlogo) mlogo.src = LOGO_CREST;
-    $("#msync")?.addEventListener("click", () => connected() ? sync({ keepView: S.view === "record" }) : renderSettings());
+    $("#msync")?.addEventListener("click", () => connected() ? sync({ keepView: S.view === "record", full: true }) : renderSettings());
     document.querySelectorAll("#mnav [data-v]").forEach(b => b.addEventListener("click", () => { if (S.view === "record" && cur && cur.dirty && !confirmLeave()) return; mNav(b.dataset.v); }));
     let wasM = isM();
     window.addEventListener("resize", () => { const m = isM(); if (m === wasM) return; wasM = m;

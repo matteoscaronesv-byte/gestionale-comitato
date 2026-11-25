@@ -2395,6 +2395,76 @@ const LETTERA = (function () {
     return { par, chiusura: ch };
   }
 
+  /* ------------------------------------------------------------ caratteri del modello Word nel PDF
+     Il modello è salvato con «Incorpora i caratteri nel file» (Amasis MT Pro, Bell MT): Word li conserva offuscati in
+     word/fonts/*.odttf. Qui si tolgono dall'offuscamento (chiave GUID di fontTable.xml, come fa Word) e si incorporano
+     nel PDF come TrueType con codifica WinAnsi. Il permesso di incorporazione dei caratteri (fsType) lo consente. */
+  const WIN = (() => { const m = new Map(); for (let c = 32; c < 127; c++) m.set(c, c); for (let c = 160; c < 256; c++) m.set(c, c);
+    [0x20AC, 0, 0x201A, 0x192, 0x201E, 0x2026, 0x2020, 0x2021, 0x2C6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17D, 0, 0, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x2DC, 0x2122, 0x161, 0x203A, 0x153, 0, 0x17E, 0x178]
+      .forEach((u, i) => { if (u) m.set(u, 128 + i); }); return m; })();
+  function ttf(b) {
+    const dv = new DataView(b.buffer, b.byteOffset, b.byteLength), n = dv.getUint16(4), T = {};
+    for (let i = 0; i < n; i++) { const o = 12 + i * 16; T[String.fromCharCode(b[o], b[o + 1], b[o + 2], b[o + 3])] = dv.getUint32(o + 8); }
+    const upm = dv.getUint16(T.head + 18), s16 = (o) => dv.getInt16(o), u16 = (o) => dv.getUint16(o);
+    const bbox = [s16(T.head + 36), s16(T.head + 38), s16(T.head + 40), s16(T.head + 42)];
+    const nhm = u16(T.hhea + 34), asc = s16(T.hhea + 4), desc = s16(T.hhea + 6);
+    const adv = (g) => u16(T.hmtx + 4 * Math.min(g, nhm - 1));
+    let cap = asc * 0.7; try { if (u16(T["OS/2"]) >= 2) cap = s16(T["OS/2"] + 88); } catch (e) { }
+    let ital = 0; try { ital = dv.getInt32(T.post + 4) / 65536; } catch (e) { }
+    // cmap: tabella Windows Unicode (3,1) in formato 4
+    let sub = -1; const nt = u16(T.cmap + 2);
+    for (let i = 0; i < nt; i++) { const pl = u16(T.cmap + 4 + i * 8), en = u16(T.cmap + 6 + i * 8), off = dv.getUint32(T.cmap + 8 + i * 8); if (pl === 3 && (en === 1 || en === 0) && u16(T.cmap + off) === 4) { sub = T.cmap + off; if (en === 1) break; } }
+    const glyph = (u) => { if (sub < 0) return 0; const sc = u16(sub + 6) / 2, ends = sub + 14, starts = ends + sc * 2 + 2, deltas = starts + sc * 2, ros = deltas + sc * 2;
+      for (let i = 0; i < sc; i++) { const e = u16(ends + i * 2); if (u > e) continue; const st = u16(starts + i * 2); if (u < st) return 0;
+        const ro = u16(ros + i * 2), d = s16(deltas + i * 2); if (!ro) return (u + d) & 0xffff; const g = u16(ros + i * 2 + ro + (u - st) * 2); return g ? (g + d) & 0xffff : 0; } return 0; };
+    return { upm, bbox, asc, desc, cap, ital, adv, glyph };
+  }
+  function fontiModello() {
+    if (typeof LETTERA_DOCX === "undefined" || !LETTERA_DOCX["word/fontTable.xml"]) return {};
+    const dec = new TextDecoder(), ft = dec.decode(b64ToBytes(LETTERA_DOCX["word/fontTable.xml"])), rels = dec.decode(b64ToBytes(LETTERA_DOCX["word/_rels/fontTable.xml.rels"] || ""));
+    const out = {};
+    for (const m of ft.matchAll(/<w:font w:name="([^"]+)"[^>]*>([\s\S]*?)<\/w:font>/g)) {
+      for (const e of m[2].matchAll(/<w:embed(\w+) r:id="(\w+)" w:fontKey="\{([0-9A-Fa-f-]+)\}"/g)) {
+        const t = (rels.match(new RegExp('Id="' + e[2] + '"[^>]*Target="([^"]+)"')) || [])[1]; if (!t || !LETTERA_DOCX["word/" + t]) continue;
+        const b = b64ToBytes(LETTERA_DOCX["word/" + t]), hex = e[3].replace(/-/g, ""), key = [];
+        for (let i = 15; i >= 0; i--) key.push(parseInt(hex.substr(i * 2, 2), 16));
+        for (let i = 0; i < 32; i++) b[i] ^= key[i % 16];
+        (out[m[1]] = out[m[1]] || {})[e[1].toLowerCase()] = b;
+      }
+    }
+    return out;
+  }
+  /* carattere con la stessa interfaccia di pdf-lib (widthOfTextAtSize) più draw(); grassetto simulato come fa Word */
+  function caratteri(doc, bytes, nome, opz = {}) {
+    const { PDFHexString, pushGraphicsState, popGraphicsState, beginText, endText, setFontAndSize, setTextMatrix, showText, setFillingRgbColor, setStrokingRgbColor, setTextRenderingMode, setLineWidth, TextRenderingMode } = PDFLib;
+    const t = ttf(bytes), k = 1000 / t.upm, ctx = doc.context, ps = nome.replace(/[^A-Za-z0-9-]/g, "");
+    const widths = [], ok = new Set();
+    for (let c = 32; c <= 255; c++) { let u = null; for (const [uu, cc] of WIN) if (cc === c) { u = uu; break; }
+      const g = u == null ? 0 : t.glyph(u); widths.push(Math.round(t.adv(g) * k)); if (g || c === 32) ok.add(c); }
+    const fc = doc.__ttf || (doc.__ttf = new Map());                    // lo stesso file di carattere si incorpora una sola volta
+    let file = fc.get(bytes); if (!file) { file = ctx.register(ctx.flateStream(bytes, { Length1: bytes.length })); fc.set(bytes, file); }
+    const desc = ctx.register(ctx.obj({ Type: "FontDescriptor", FontName: ps, Flags: 34 + (t.ital ? 64 : 0), FontBBox: t.bbox.map(v => Math.round(v * k)), ItalicAngle: t.ital,
+      Ascent: Math.round(t.asc * k), Descent: Math.round(t.desc * k), CapHeight: Math.round(t.cap * k), StemV: opz.bold ? 120 : 80, FontFile2: file }));
+    const ref = ctx.register(ctx.obj({ Type: "Font", Subtype: "TrueType", BaseFont: ps, FirstChar: 32, LastChar: 255, Widths: widths, Encoding: "WinAnsiEncoding", FontDescriptor: desc }));
+    const code = (ch) => { const c = WIN.get(ch.codePointAt(0)); if (c == null || !ok.has(c)) throw new Error("carattere non disponibile"); return c; };
+    const chiavi = new WeakMap();
+    return { name: ps + (opz.bold ? "-Bold" : ""),
+      widthOfTextAtSize(s, sz) { let w = 0; for (const ch of String(s)) w += widths[code(ch) - 32]; return w * sz / 1000 * (opz.bold ? 1.02 : 1); },
+      heightAtSize(sz) { return (t.asc - t.desc) * sz / t.upm; },
+      draw(page, s, x, y, sz, col) {
+        let key = chiavi.get(page.node); if (!key) { key = page.node.newFontDictionary(ps, ref); chiavi.set(page.node, key); }
+        let hex = ""; for (const ch of String(s)) hex += code(ch).toString(16).padStart(2, "0");
+        const c = col || { red: 0, green: 0, blue: 0 };
+        const ops = [pushGraphicsState(), beginText(), setFontAndSize(key, sz), setFillingRgbColor(c.red, c.green, c.blue)];
+        if (opz.bold) ops.push(setStrokingRgbColor(c.red, c.green, c.blue), setLineWidth(sz * 0.032), setTextRenderingMode(TextRenderingMode.FillAndOutline));
+        ops.push(setTextMatrix(1, 0, 0, 1, x, y), showText(PDFHexString.of(hex)), endText(), popGraphicsState());
+        page.pushOperators(...ops);
+      } };
+  }
+  /* caratteri standard di pdf-lib con la stessa interfaccia (se il modello non ha caratteri incorporati) */
+  const std = (f) => ({ name: f.name, widthOfTextAtSize: (s, sz) => f.widthOfTextAtSize(s, sz), heightAtSize: (sz) => f.heightAtSize(sz),
+    draw: (page, s, x, y, sz, col) => page.drawText(s, { x, y, font: f, size: sz, color: col || PDFLib.rgb(0, 0, 0) }) });
+
   /* ------------------------------------------------------------ PDF della lettera
      Riproduce il modello Word «Modello_lettera_Comitato_Territoriale»: stesse immagini, margini, posizioni e spaziature
      (misurate sul modello). I caratteri del modello (Amasis MT Pro, Bell MT) non si possono incorporare nel browser:
@@ -2403,7 +2473,17 @@ const LETTERA = (function () {
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
     const doc = await PDFDocument.create();
     doc.setTitle(`Comunicazione ${d.numero || ""} – ${NOME}`); doc.setAuthor(NOME); doc.setCreator("Gestionale del Comitato"); doc.setLanguage("it-IT");
-    const R = await doc.embedFont(StandardFonts.TimesRoman), B = await doc.embedFont(StandardFonts.TimesRomanBold), I = await doc.embedFont(StandardFonts.TimesRomanItalic);
+    // caratteri: quelli incorporati nel modello Word (Amasis MT Pro Light per il testo, Bell MT per intestazione e oggetto);
+    // se mancano, Times
+    const TR = std(await doc.embedFont(StandardFonts.TimesRoman)), TB = std(await doc.embedFont(StandardFonts.TimesRomanBold)), TI = std(await doc.embedFont(StandardFonts.TimesRomanItalic));
+    const FM = fontiModello(), am = FM["Amasis MT Pro Light"] || {}, bell = FM["Bell MT"] || {};
+    const prova = (fn) => { try { return fn(); } catch (e) { console.warn("Carattere del modello non utilizzabile:", e); return null; } };
+    const R = (am.regular && prova(() => caratteri(doc, am.regular, "AmasisMTPro-Light"))) || TR;
+    const ugualeB = am.bold && am.regular && am.bold.length === am.regular.length && am.bold.every((v, i) => v === am.regular[i]);
+    const B = (am.regular && prova(() => caratteri(doc, ugualeB || !am.bold ? am.regular : am.bold, "AmasisMTPro-Light", { bold: ugualeB || !am.bold }))) || TB;
+    const I = (am.italic && prova(() => caratteri(doc, am.italic, "AmasisMTPro-LightItalic"))) || TI;
+    const H = (bell.regular && prova(() => caratteri(doc, bell.regular, "BellMT"))) || TR;
+    const HB = (bell.bold && prova(() => caratteri(doc, bell.bold, "BellMT-Bold"))) || TB;
     const IMG = typeof LETTERA_IMG !== "undefined" ? LETTERA_IMG : {};
     const png = async (du) => du ? await doc.embedPng(duBytes(du)) : null;
     const logo = await png(IMG.logo), piede1 = await png(IMG.piede1), piede2 = await png(IMG.piede2);
@@ -2421,7 +2501,7 @@ const LETTERA = (function () {
     const LIM = () => pages.length === 1 ? 748 : 754;                 // sopra la linea del piè di pagina
     const nuova = () => { page = doc.addPage([PW, PH]); pages.push(page); t = pages.length === 1 ? 0 : 87; };
     const serve = (h) => { if (t + h > LIM()) nuova(); };
-    const txt = (s, x, tt, f, sz, c) => page.drawText(s, { x, y: PH - tt, font: f, size: sz, color: c || NERO });
+    const txt = (s, x, tt, f, sz, c) => f.draw(page, s, x, PH - tt, sz, c || NERO);
     const spaziato = (s, cx, tt, f, sz, sp) => { const w = [...s].reduce((a, ch) => a + f.widthOfTextAtSize(ch, sz) + sp, -sp); let x = cx - w / 2; for (const ch of s) { txt(ch, x, tt, f, sz); x += f.widthOfTextAtSize(ch, sz) + sp; } };
     const centro = (s, cx, tt, f, sz, c) => { s = safe(s, f); txt(s, cx - f.widthOfTextAtSize(s, sz) / 2, tt, f, sz, c); };
     const giust = (s, x, tt, f, sz, w) => { const p = s.split(" "); if (p.length < 2) return txt(s, x, tt, f, sz);
@@ -2434,13 +2514,13 @@ const LETTERA = (function () {
     nuova();
     if (logo) page.drawImage(logo, { x: 56.4, y: PH - 41.6 - 90.35, width: 114.25, height: 90.35 });
     const CX = 359.2;
-    spaziato("COMITATO TERRITORIALE", CX, 72, R, 18, 1.6);
-    centro("Lavagnola – Santuario – Montemoro – Cantagalletto", CX, 98.5, R, 12);
-    centro("Marmorassi e zone collinari", CX, 113, R, 12);
+    spaziato("COMITATO TERRITORIALE", CX, 72, H, 18, 1.5);
+    centro("Lavagnola – Santuario – Montemoro – Cantagalletto", CX, 98.5, H, 12);
+    centro("Marmorassi e zone collinari", CX, 113, H, 12);
     linea(227.6, 497, 119.3, 0.75);
-    centro("CONSIGLIO DIRETTIVO", PW / 2, 142.5, B, 12);
+    centro("CONSIGLIO DIRETTIVO", PW / 2, 142.5, HB, 12);
     // ---- numero e data
-    const SZ = 11, LH = 14.3, DOPO = 8, DL = 13.4;
+    const SZ = R === TR ? 11 : 10.5, LH = 14.3, DOPO = 8, DL = 13.4;
     t = 193.5;
     if (d.numero) { txt(safe("Comunicazione n. " + d.numero, B), ML, t, B, SZ); t += DL; }
     txt(safe(`${d.luogo || "Savona"}, lì ${dataLunga(d.data)}`, R), ML, t, R, SZ);
@@ -2455,11 +2535,11 @@ const LETTERA = (function () {
     if (epc.length) { t += DL; riga("e p.c."); epc.forEach(riga); }
     // ---- oggetto (etichetta 15 pt, testo 12 pt in grassetto, rientro sporgente come nel modello)
     t += 89 - DL;
-    const OX = ML - 14.2, lab = "Oggetto: ", lw = B.widthOfTextAtSize(lab, 15), TX = ML + 49.65;
-    const ogg = wrap(d.oggetto || "", B, 12, PW - MR - TX, PW - MR - OX - lw);
+    const OX = ML - 14.2, lab = "Oggetto: ", lw = HB.widthOfTextAtSize(lab, 15), TX = ML + 49.65;
+    const ogg = wrap(d.oggetto || "", HB, 12, PW - MR - TX, PW - MR - OX - lw);
     serve(ogg.length * 14.5 + 6);
-    txt("Oggetto:", OX, t, B, 15);
-    ogg.forEach((l, i) => txt(l, i ? TX : OX + lw, t + i * 14.5, B, 12)); t += (ogg.length - 1) * 14.5 + 51;
+    txt("Oggetto:", OX, t, HB, 15);
+    ogg.forEach((l, i) => txt(l, i ? TX : OX + lw, t + i * 14.5, HB, 12)); t += (ogg.length - 1) * 14.5 + 51;
     // ---- testo: paragrafi giustificati; le righe che iniziano con «-» come elenco
     const { par, chiusura } = corpo(d.testo);
     for (const p0 of par) {
@@ -2503,7 +2583,7 @@ const LETTERA = (function () {
     const all = String(d.allegati || "").split("\n").map(x => x.trim()).filter(Boolean);
     if (all.length) { t += 6; serve(LH * 2); txt("Allegati:", ML, t, B, SZ); t += LH;
       all.forEach((a, i) => wrap(`${i + 1}. ${a}`, R, SZ, W - 14).forEach((l, k) => { serve(LH); txt(l, ML + (k ? 14 : 0), t, R, SZ); t += LH; })); }
-    if (d.bozza) { const s = "BOZZA – non ancora firmata da tutti i Coordinatori"; pages.forEach(p => p.drawText(s, { x: PW / 2 - B.widthOfTextAtSize(s, 8.5) / 2, y: PH - 22, font: B, size: 8.5, color: rgb(0.75, 0.1, 0.1) })); }
+    if (d.bozza) { const s = "BOZZA – non ancora firmata da tutti i Coordinatori"; pages.forEach(p => B.draw(p, s, PW / 2 - B.widthOfTextAtSize(s, 8.5) / 2, PH - 22, 8.5, rgb(0.75, 0.1, 0.1))); }
     // ---- documenti uniti in coda (scheda della pratica, foto, PDF)
     const nLett = pages.length;
     for (const a of d.unisci || []) {
@@ -2513,7 +2593,7 @@ const LETTERA = (function () {
         cap.forEach(l => { txt(l, ML, t, I, 10, GRIGIO); t += 12; }); } catch (e) { } continue; }
       try { const src = await PDFDocument.load(a.bytes, { ignoreEncryption: true }); const cp = await doc.copyPages(src, src.getPageIndices());
         cp.forEach((p, i) => { doc.addPage(p); const { height } = p.getSize(); const lab = safe(`Comunicazione ${d.numero || ""} – ${a.titolo} (pag. ${i + 1}/${cp.length})`, I);
-          p.drawRectangle({ x: 14, y: height - 19, width: I.widthOfTextAtSize(lab, 7.5) + 12, height: 13, color: rgb(1, 1, 1), opacity: 0.88 }); p.drawText(lab, { x: 20, y: height - 15, size: 7.5, font: I, color: GRIGIO }); });
+          p.drawRectangle({ x: 14, y: height - 19, width: I.widthOfTextAtSize(lab, 7.5) + 12, height: 13, color: rgb(1, 1, 1), opacity: 0.88 }); I.draw(p, lab, 20, height - 15, 7.5, GRIGIO); });
       } catch (e) { }
     }
     // ---- intestazione delle pagine successive e piè di pagina, come nel modello
@@ -2522,13 +2602,13 @@ const LETTERA = (function () {
       if (i === 0) {
         linea(25.3, 558.8, 759, 0.6);
         if (piede1) p.drawImage(piede1, { x: 31.9, y: PH - 761.6 - 36.8, width: 66.55, height: 36.8 });
-        SEDE.forEach((s, k) => txt(safe(s, R), 113.5, 786 + k * 11.1, R, 8));
+        SEDE.forEach((s, k) => txt(safe(s, H), 113.5, 786 + k * 11.1, H, 8));
       } else {
-        let hs = safe(NOME, R), sz = 10; while (R.widthOfTextAtSize(hs, sz) > 520 && sz > 8) sz -= 0.25;
-        centro(hs, PW / 2, 50, R, sz); linea(31.6, 565.1, 55.7, 0.6);
+        let hs = safe(NOME, H), sz = 10; while (H.widthOfTextAtSize(hs, sz) > 500 && sz > 8) sz -= 0.25;
+        centro(hs, PW / 2, 50, H, sz); linea(31.6, 565.1, 55.7, 0.6);
         linea(28.9, 562.4, 765.5, 0.6);
         if (piede2) p.drawImage(piede2, { x: 35, y: PH - 768.8 - 36.8, width: 66.55, height: 36.8 });
-        const n = String(i + 1); txt(n, 538.6 - R.widthOfTextAtSize(n, 10), 809, R, 10);
+        const n = String(i + 1); txt(n, 538.6 - H.widthOfTextAtSize(n, 10), 809, H, 10);
       }
     });
     return await doc.save();

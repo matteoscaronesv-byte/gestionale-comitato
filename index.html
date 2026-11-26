@@ -1657,16 +1657,16 @@ const UI = (function () {
   /* ---------------- mappa (Leaflet + OpenStreetMap) ---------------- */
   const GEO = {
     ok: () => !!window.L,
-    /* Sfondi della mappa. Il server di OpenStreetMap (tile.openstreetmap.org) blocca con errore 403 le pagine aperte
-       da file o senza indirizzo di provenienza: si usa quindi Esri come riserva, con passaggio
-       automatico al successivo se uno non risponde. CARTO non si usa più (dal 2026 chiede una chiave API).
-       La chiave "carto" resta per compatibilità con le preferenze salvate. */
-    // sfondi gratuiti: OpenStreetMap, satellite Esri con nomi di strade e località, stradale Esri come riserva
+    /* Sfondi della mappa. OpenStreetMap (tile.openstreetmap.org) non si usa più: alle pagine senza indirizzo di
+       provenienza (Gestionale aperto da file, Portale dentro Google Apps Script) risponde con una tessera
+       «Access blocked» che il browser considera caricata, quindi non scatta nemmeno la riserva. CARTO dal 2026
+       chiede una chiave API. Si usano solo i servizi gratuiti Esri, che rispondono in ogni caso.
+       Le chiavi "osm" e "carto" restano per compatibilità con la scelta salvata sui dispositivi. */
     SFONDI: [
-      { k: "osm", nome: "Mappa", url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", o: { maxZoom: 19, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a>" } },
+      { k: "osm", nome: "Mappa", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", o: { maxZoom: 20, maxNativeZoom: 19, attribution: "© Esri, HERE, Garmin, © <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a>" } },
       { k: "sat", nome: "Satellite", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", o: { maxZoom: 20, maxNativeZoom: 19, attribution: "Immagini © Esri, Maxar, Earthstar Geographics" },
         sopra: ["https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}", "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"] },
-      { k: "carto", nome: "Stradale", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", o: { maxZoom: 20, maxNativeZoom: 19, attribution: "© Esri, HERE, Garmin, © <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a>" } },
+      { k: "carto", nome: "Topografica", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", o: { maxZoom: 20, maxNativeZoom: 19, attribution: "© Esri, HERE, Garmin, © <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a>" } },
     ],
     tiles(map) {                       // sfondo con pulsanti Mappa / Satellite, scelta ricordata, ripiego automatico se il server non risponde
       const S0 = GEO.SFONDI, groups = S0.map(x => { const base = L.tileLayer(x.url, x.o); return { base, g: L.layerGroup([base, ...(x.sopra || []).map(u => L.tileLayer(u, { maxZoom: 20, maxNativeZoom: 19 }))]) }; });
@@ -1685,7 +1685,6 @@ const UI = (function () {
         return box; } });
       new Ctl().addTo(map);
       let pref = 1; try { const k = localStorage.getItem("ct-sfondo"), j = S0.findIndex(x => x.k === k); if (j >= 0) pref = j; } catch (e) { }   // satellite, salvo scelta diversa
-      if (location.protocol === "file:" && pref === 0) pref = 2;      // aperto come file: OpenStreetMap rifiuta le richieste senza indirizzo di provenienza
       pick(pref);
       return groups[pref].base;
     },
@@ -1997,10 +1996,12 @@ const PDFGEN = (function () {
     const load = (url) => new Promise((res) => { const im = new Image(); im.crossOrigin = "anonymous"; const t = setTimeout(() => res(null), 6000);
       im.onload = () => { clearTimeout(t); res(im); }; im.onerror = () => { clearTimeout(t); res(null); }; im.src = url; });
     /* Fonti delle tessere, in ordine: tutte le tessere della mappa vengono dalla stessa fonte (niente stili misti).
-       CARTO non è più usato: dal 2026 senza chiave restituisce una tessera «API KEY REQUIRED». */
+       Solo Esri: OpenStreetMap senza indirizzo di provenienza dà una tessera «Access blocked», CARTO chiede una chiave API.
+       (niente apici inversi con indirizzi: Apps Script li scambierebbe per commenti) */
+    const ESRI = "https:" + "/" + "/server.arcgisonline.com/ArcGIS/rest/services/";
     const FONTI = [
-      { url: (X, Y) => `https://tile.openstreetmap.org/${z}/${X}/${Y}.png`, cr: "© OpenStreetMap contributors" },
-      { url: (X, Y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${Y}/${X}`, cr: "© Esri, HERE, Garmin, OpenStreetMap contributors" },
+      { url: (X, Y) => ESRI + "World_Street_Map/MapServer/tile/" + z + "/" + Y + "/" + X, cr: "© Esri, HERE, Garmin, OpenStreetMap contributors" },
+      { url: (X, Y) => ESRI + "World_Topo_Map/MapServer/tile/" + z + "/" + Y + "/" + X, cr: "© Esri, HERE, Garmin, OpenStreetMap contributors" },
     ];
     const tess = [];
     for (let tx = Math.floor(x0 / TS); tx <= Math.floor((x0 + W) / TS); tx++)

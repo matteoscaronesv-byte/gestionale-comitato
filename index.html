@@ -1658,14 +1658,15 @@ const UI = (function () {
   const GEO = {
     ok: () => !!window.L,
     /* Sfondi della mappa. Il server di OpenStreetMap (tile.openstreetmap.org) blocca con errore 403 le pagine aperte
-       da file o senza indirizzo di provenienza: si usano quindi CARTO (dati OpenStreetMap) ed Esri, con passaggio
-       automatico al successivo se uno non risponde. */
-    // sfondi gratuiti: satellite Esri con nomi di strade e località (predefinito), OpenStreetMap, CARTO come riserva
+       da file o senza indirizzo di provenienza: si usa quindi Esri come riserva, con passaggio
+       automatico al successivo se uno non risponde. CARTO non si usa più (dal 2026 chiede una chiave API).
+       La chiave "carto" resta per compatibilità con le preferenze salvate. */
+    // sfondi gratuiti: OpenStreetMap, satellite Esri con nomi di strade e località, stradale Esri come riserva
     SFONDI: [
       { k: "osm", nome: "Mappa", url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", o: { maxZoom: 19, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a>" } },
       { k: "sat", nome: "Satellite", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", o: { maxZoom: 20, maxNativeZoom: 19, attribution: "Immagini © Esri, Maxar, Earthstar Geographics" },
         sopra: ["https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}", "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"] },
-      { k: "carto", nome: "Chiara", url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", o: { subdomains: "abcd", maxZoom: 20, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a> © <a href=\"https://carto.com/attributions\" target=\"_blank\" rel=\"noopener\">CARTO</a>" } },
+      { k: "carto", nome: "Stradale", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", o: { maxZoom: 20, maxNativeZoom: 19, attribution: "© Esri, HERE, Garmin, © <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a>" } },
     ],
     tiles(map) {                       // sfondo con pulsanti Mappa / Satellite, scelta ricordata, ripiego automatico se il server non risponde
       const S0 = GEO.SFONDI, groups = S0.map(x => { const base = L.tileLayer(x.url, x.o); return { base, g: L.layerGroup([base, ...(x.sopra || []).map(u => L.tileLayer(u, { maxZoom: 20, maxNativeZoom: 19 }))]) }; });
@@ -1995,20 +1996,27 @@ const PDFGEN = (function () {
     const g = cv.getContext("2d"); g.fillStyle = "#eee"; g.fillRect(0, 0, W, H);
     const load = (url) => new Promise((res) => { const im = new Image(); im.crossOrigin = "anonymous"; const t = setTimeout(() => res(null), 6000);
       im.onload = () => { clearTimeout(t); res(im); }; im.onerror = () => { clearTimeout(t); res(null); }; im.src = url; });
-    const jobs = [];
+    /* Fonti delle tessere, in ordine: tutte le tessere della mappa vengono dalla stessa fonte (niente stili misti).
+       CARTO non è più usato: dal 2026 senza chiave restituisce una tessera «API KEY REQUIRED». */
+    const FONTI = [
+      { url: (X, Y) => `https://tile.openstreetmap.org/${z}/${X}/${Y}.png`, cr: "© OpenStreetMap contributors" },
+      { url: (X, Y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${Y}/${X}`, cr: "© Esri, HERE, Garmin, OpenStreetMap contributors" },
+    ];
+    const tess = [];
     for (let tx = Math.floor(x0 / TS); tx <= Math.floor((x0 + W) / TS); tx++)
-      for (let ty = Math.floor(y0 / TS); ty <= Math.floor((y0 + H) / TS); ty++)
-        jobs.push((async () => { const X = ((tx % n) + n) % n;
-          let im = await load(`https://a.basemaps.cartocdn.com/rastertiles/voyager/${z}/${X}/${ty}.png`);
-          if (!im) im = await load(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${ty}/${X}`);
-          if (im) g.drawImage(im, tx * TS - x0, ty * TS - y0); return !!im; })());
-    const ok = await Promise.all(jobs);
-    if (!ok.some(Boolean)) return null;
+      for (let ty = Math.floor(y0 / TS); ty <= Math.floor((y0 + H) / TS); ty++) tess.push([tx, ty]);
+    let fonte = null, imgs = null;
+    for (const f of FONTI) {
+      const r = await Promise.all(tess.map(([tx, ty]) => load(f.url(((tx % n) + n) % n, ty))));
+      if (r.every(Boolean)) { fonte = f; imgs = r; break; }
+    }
+    if (!fonte) return null;                      // nessuna fonte completa: il PDF riporta solo coordinate e collegamento
+    tess.forEach(([tx, ty], i) => g.drawImage(imgs[i], tx * TS - x0, ty * TS - y0));
     const cx = W / 2, cy = H / 2;                 // segnaposto
     g.fillStyle = "#8b1e1e"; g.strokeStyle = "#fff"; g.lineWidth = 2.5;
     g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy - 22, 11, Math.PI * 0.75, Math.PI * 0.25); g.closePath(); g.fill(); g.stroke();
     g.fillStyle = "#fff"; g.beginPath(); g.arc(cx, cy - 22, 4, 0, 2 * Math.PI); g.fill();
-    g.font = "11px sans-serif"; const cr = "© OpenStreetMap contributors, CARTO / Esri"; const tw = g.measureText(cr).width;
+    g.font = "11px sans-serif"; const cr = fonte.cr; const tw = g.measureText(cr).width;
     g.fillStyle = "rgba(255,255,255,.85)"; g.fillRect(W - tw - 10, H - 16, tw + 10, 16); g.fillStyle = "#333"; g.fillText(cr, W - tw - 5, H - 4);
     try { const du = cv.toDataURL("image/png"); const b = atob(du.split(",")[1]); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
     catch (e) { return null; }                    // tessere senza permesso CORS: niente immagine

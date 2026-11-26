@@ -2657,18 +2657,20 @@ const LETTERA = (function () {
     // ---- chiusura, data e firme: restano insieme sulla stessa pagina
     const fir = (d.firme || []).slice(0, 4), chl = wrap(chiusura, R, SZ, W);
     t += 2 * (LH + DOPO) - LH;
-    serve(chl.length * LH + 55 + 62 + 30);
+    // firme: nome e ruolo come nel modello, la firma grafica sotto il nominativo (spazio FH riservato anche se manca, per firmare a mano)
+    const FH = 42, FG = 6;
+    serve(chl.length * LH + 55 + 62 + 30 + FH + FG);
     chl.forEach(l => { txt(l, ML, t, R, SZ); t += LH; }); t += 47.2 - LH;
     txt(safe(`${d.luogo || "Savona"}, lì ${dataLunga(d.data)}`, R), ML, t, R, SZ);
-    const nb = t + 61.7, cw = fir.length > 2 ? W / fir.length : 221.1;
+    const nb = t + 61.7, rb = nb + 21.7, cw = fir.length > 2 ? W / fir.length : 221.1;
     for (const [i, f] of fir.entries()) {
       const cx = ML + cw * i + cw / 2;
-      if (f.img) { try { const im = await doc.embedPng(duBytes(f.img)); let h = 40, w = im.width * h / im.height; if (w > cw - 20) { w = cw - 20; h = w * im.height / im.width; }
-        page.drawImage(im, { x: cx - w / 2, y: PH - (nb - 12), width: w, height: h }); } catch (e) { } }
-      centro(f.nome, cx, nb, B, SZ); centro(f.ruolo || "Coordinatore", cx, nb + 21.7, I, SZ);
-      if (!f.img && d.bozza) centro("(firma in attesa)", cx, nb - 16, I, 8, rgb(0.6, 0.6, 0.6));
+      centro(f.nome, cx, nb, B, SZ); centro(f.ruolo || "Coordinatore", cx, rb, I, SZ);
+      if (f.img) { try { const im = await doc.embedPng(duBytes(f.img)); let h = FH, w = im.width * h / im.height; if (w > cw - 20) { w = cw - 20; h = w * im.height / im.width; }
+        page.drawImage(im, { x: cx - w / 2, y: PH - (rb + FG + h), width: w, height: h }); } catch (e) { } }
+      else if (d.bozza) centro("(firma in attesa)", cx, rb + FG + FH / 2 + 3, I, 8, rgb(0.6, 0.6, 0.6));
     }
-    t = nb + 21.7 + LH + DOPO;
+    t = rb + FG + FH + LH + DOPO;
     // ---- allegati
     const all = String(d.allegati || "").split("\n").map(x => x.trim()).filter(Boolean);
     if (all.length) { t += 6; serve(LH * 2); txt("Allegati:", ML, t, B, SZ); t += LH;
@@ -2741,19 +2743,21 @@ const LETTERA = (function () {
     // firme grafiche dei Coordinatori che hanno firmato nel Gestionale: immagine sopra il nome, nello spazio previsto dal modello
     const f = d.firme || [];
     let rels = dec.decode(parts["word/_rels/document.xml.rels"]);
-    [["F1", f[0]], ["F2", f[1]]].forEach(([k, fi], i) => {
+    [["F1", "R1", f[0]], ["F2", "R2", f[1]]].forEach(([k, kr, fi], i) => {
       const pf = proto(x, k); if (!pf) return;
-      let out = fill(pf, k, fi ? fi.nome : "");
+      x = x.replace(pf, () => fill(pf, k, fi ? fi.nome : ""));
+      const pr = proto(x, kr); if (!pr) return;
+      let out = pr;
       if (fi && fi.img) {
         const b = duBytes(fi.img), dv = new DataView(b.buffer, b.byteOffset), w = dv.getUint32(16), h = dv.getUint32(20);
         let cy = 40 * 12700, cx = Math.round(cy * w / h); if (cx > 170 * 12700) { cx = 170 * 12700; cy = Math.round(cx * h / w); }
         const nome = `media/firma_${i + 1}.png`, rid = `rIdFirma${i + 1}`;
         parts["word/" + nome] = b;
         rels = rels.replace("</Relationships>", `<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${nome}"/></Relationships>`);
-        const img = `<w:p><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${9100 + i}" name="Firma ${xesc(fi.nome)}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${9100 + i}" name="firma_${i + 1}.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
-        out = img + out.replace(/<w:spacing w:before="\d+"/, '<w:spacing w:before="0"');
+        const img = `<w:p><w:pPr><w:spacing w:before="120" w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${9100 + i}" name="Firma ${xesc(fi.nome)}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${9100 + i}" name="firma_${i + 1}.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+        out = pr + img;
       }
-      x = x.replace(pf, () => out);
+      x = x.replace(pr, () => out);
     });
     parts["word/_rels/document.xml.rels"] = new TextEncoder().encode(rels);
     x = x.replace("{{R1}}", xesc(f[0] ? f[0].ruolo || "Coordinatore" : "")).replace("{{R2}}", xesc(f[1] ? f[1].ruolo || "Coordinatore" : ""));

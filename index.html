@@ -815,6 +815,15 @@ footer.foot{text-align:center;font-size:12px;color:var(--mute);padding:20px 10px
 .geo-sw button{border:0;background:#fff;color:#333;font:600 13px system-ui,-apple-system,sans-serif;padding:8px 12px;cursor:pointer;min-height:36px}
 .geo-sw button+button{border-left:1px solid #ddd}
 .geo-sw button.on{background:#8b1e1e;color:#fff}
+/* importazione verbali */
+.imp-sheet{max-width:640px}
+.imp-out{margin:.6rem 0}
+.imp-out select{width:100%;margin:.2rem 0 .6rem;padding:.45rem;font:inherit}
+.imp-dl{display:grid;grid-template-columns:max-content 1fr;gap:.25rem .8rem;margin:.4rem 0 .8rem;font-size:.92em;max-height:40vh;overflow:auto;padding:.5rem;background:#f6f5f3;border-radius:8px}
+.imp-dl dt{font-weight:600;color:#555}
+.imp-dl dd{margin:0;overflow-wrap:anywhere}
+.warnbox{background:#fff4e5;border:1px solid #f0c27b}
+textarea.ro,input.ro{background:#f4f3f1;color:#444}
 
 .status{display:flex;align-items:center;gap:6px;font-size:13px;font-family:system-ui,sans-serif;color:#444}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -1158,7 +1167,7 @@ const ZONE = ["Lavagnola", "Valle Lavanestro (Montemoro, Maschio)", "Valle Letim
   "Alta Valle Letimbro (San Bartolomeo del Bosco, Naso di Gatto)", "Cantagalletto e loc. Ciatti – Via Mageni", "Marmorassi",
   "Via Repusseno", "Via San Nazario", "Via alla Strà", "Cadibona", "Fuori dal territorio del Comitato"];
 /* Mappa: centro e zoom iniziali sul territorio del Comitato; colori dei segnaposto per tipo */
-const MAPPA = { centro: [44.333, 8.44], zoom: 13, colori: { segnalazione: "#c0392b", proposte: "#1f6fb2", rifiuti: "#1e8449", scheda: "#7d3c98", adesione: "#7f8c8d", albo: "#b9770e", verbale_direttivo: "#555", verbale_tavolo: "#555", comunicazione: "#1d3f7a" } };
+const MAPPA = { centro: [44.333, 8.44], zoom: 13, colori: { segnalazione: "#c0392b", proposte: "#1f6fb2", rifiuti: "#1e8449", scheda: "#7d3c98", adesione: "#7f8c8d", albo: "#b9770e", verbale_assemblea: "#555", verbale_direttivo: "#555", verbale_tavolo: "#555", comunicazione: "#1d3f7a" } };
 const EMAIL = "quartierelavagnolacomitato@gmail.com";
 const PUNTO = "il punto di ascolto in sede (ex 1ª Circoscrizione, Lavagnola), nei giorni e orari indicati sul sito e sul manifesto del Comitato";
 
@@ -1448,6 +1457,69 @@ FORMS.adesione = {
     { id: "r_note", t: "area", rows: 2, label: "Note" }],
 };
 
+/* Voci dei verbali importati da PDF o Word: compaiono solo quando il verbale è stato importato (ifSet: "importato").
+   Il testo originale resta consultabile nel Gestionale ma non si ristampa nel PDF, dove il file originale è già allegato. */
+const IMP_FILE = { id: "importato", t: "text", label: "Importato dal file", ifSet: "importato", hint: "Il file originale è nell'elenco degli allegati e viene unito in coda al PDF del verbale" };
+const IMP_TESTO = { id: "testo_originale", t: "area", rows: 8, label: "Testo del verbale originale", ifSet: "importato", noPdf: true, hint: "Testo letto dal file: serve per controllare le voci qui sopra e per la ricerca. Non va modificato." };
+const IMP_SVOLG = { id: "svolgimento", t: "area", rows: 8, label: "Svolgimento della seduta (dal verbale originale)", ifSet: "importato" };
+
+/* ---------------- Verbale dell'Assemblea ---------------- */
+FORMS.verbale_assemblea = {
+  group: "interno", prefix: "VAS", subjectField: "numero", short: "Verbale Assemblea",
+  name: "Verbale dell'Assemblea", file: "Verbale-Assemblea", title: "VERBALE DELL'ASSEMBLEA DEL COMITATO",
+  subtitle: "Art. 8 del Regolamento comunale dei Comitati Territoriali – art. 4 del Regolamento interno",
+  box: { title: "Promemoria", lines: [
+    "L'Assemblea è convocata dai Coordinatori almeno una volta l'anno e quando lo chiedono il Sindaco o, per iscritto, almeno il 25% degli aderenti (art. 8 del Regolamento comunale).",
+    "Convocazione pubblica con almeno dieci giorni di preavviso: luogo, data, ora e ordine del giorno.",
+    "Può votare solo chi ha aderito al Comitato, senza deleghe. Per deliberare serve la presenza del 30% degli aderenti; altrimenti si tiene solo un incontro informativo, senza votazioni.",
+    "Le decisioni sono approvate a maggioranza degli aderenti presenti; la revoca di componenti del Direttivo richiede la maggioranza assoluta degli aderenti.",
+    "Il verbale è redatto dal Segretario, firmato da chi presiede e consultabile dagli aderenti; se pubblicato, si omettono i dati personali non necessari."] },
+  sections: [
+    { title: "1. Seduta", fields: [
+      IMP_FILE,
+      { id: "numero", t: "text", label: "Verbale n.", req: true, hint: "es. 1/2026" },
+      { id: "tipo", t: "radio", label: "Tipo di Assemblea", vertical: true, opts: ["Ordinaria annuale (programma e relazione del Direttivo)", "Su richiesta del Sindaco o del 25% degli aderenti", "Assemblea pubblica / incontro informativo"] },
+      { id: "data", t: "date", label: "Data", req: true, today: true },
+      { id: "ora_inizio", t: "text", label: "Ora di inizio" }, { id: "ora_fine", t: "text", label: "Ora di chiusura" },
+      { id: "modalita", t: "radio", label: "Modalità", opts: ["In presenza", "In collegamento audio-video", "Mista"] },
+      { id: "luogo", t: "text", label: "Luogo", hint: "es. sede del Comitato, SMS Libertà e Lavoro" },
+      { id: "convocazione", t: "text", label: "Convocazione pubblicata il / con", hint: "es. 1/11/2026, sito, e-mail agli aderenti, bacheche, canali del Comune" }] },
+    { title: "2. Presenze e validità", fields: [
+      { id: "presidente", t: "text", label: "Presiede (Coordinatore)", req: true },
+      { id: "verbalizzante", t: "text", label: "Segretario verbalizzante", req: true },
+      { id: "n_aderenti", t: "text", label: "Aderenti al Comitato (n.)" }, { id: "n_aderenti_presenti", t: "text", label: "Aderenti presenti (n.)", hint: "Dal foglio delle presenze" },
+      { id: "n_cittadini", t: "text", label: "Altri cittadini presenti (n.)" },
+      { id: "direttivo_presenti", t: "area", rows: 3, label: "Componenti del Direttivo presenti" },
+      { id: "direttivo_assenti", t: "area", rows: 2, label: "Componenti del Direttivo assenti (giustificati)" },
+      { id: "ospiti", t: "area", rows: 2, label: "Amministratori comunali, ospiti e invitati" },
+      { id: "numero_legale", t: "radio", label: "Numero legale", vertical: true, opts: ["Raggiunto: presente almeno il 30% degli aderenti, l'Assemblea può deliberare", "Non raggiunto: solo incontro informativo, senza votazioni"] }] },
+    { title: "3. Ordine del giorno e deliberazioni", fields: [
+      { id: "odg", t: "items", label: "Punto", req: true, fields: [
+        { id: "titolo", t: "text", label: "Argomento" },
+        { id: "discussione", t: "area", rows: 3, label: "Sintesi della discussione" },
+        { id: "decisione", t: "area", rows: 2, label: "Decisione" },
+        { id: "esito", t: "radio", label: "Esito", opts: ["Approvato", "Respinto", "Rinviato", "Solo informativa"] },
+        { id: "voti", t: "text", label: "Voti: favorevoli / contrari / astenuti", hint: "es. 42 / 3 / 5" }] },
+      { id: "svolgimento", t: "area", rows: 6, label: "Svolgimento della seduta", hint: "Sintesi degli interventi e delle risposte del Direttivo" },
+      { id: "decisioni", t: "area", rows: 3, label: "Deliberazioni assunte" }] },
+    { title: "4. Interventi, proposte e seguiti", fields: [
+      { id: "interventi", t: "items", label: "Intervento", fields: [
+        { id: "chi", t: "text", label: "Chi interviene", hint: "Nome solo se consente; altrimenti «un cittadino»" },
+        { id: "tema", t: "text", label: "Tema o zona" },
+        { id: "sintesi", t: "area", rows: 2, label: "Segnalazione o proposta" },
+        { id: "seguito", t: "text", label: "Seguito", hint: "es. segnalazione SEG-2026-0012, al Tavolo Strade" }] },
+      { id: "impegni", t: "area", rows: 2, label: "Impegni del Direttivo", hint: "Chi fa che cosa ed entro quando" },
+      { id: "varie", t: "area", rows: 2, label: "Varie ed eventuali" }] },
+    { title: "5. Firme e pubblicazione", fields: [
+      { id: "data_firma", t: "date", label: "Data", today: true },
+      { id: "firma", t: "sign", label: "Il Coordinatore che presiede" },
+      { id: "firma_segretario", t: "sign", label: "Il Segretario verbalizzante" },
+      { id: "pubblicato_il", t: "date", label: "Verbale pubblicato il", hint: "Senza i dati personali non necessari" },
+      IMP_TESTO] },
+  ],
+  riservato: null,
+};
+
 /* ---------------- Verbale del Consiglio Direttivo ---------------- */
 FORMS.verbale_direttivo = {
   group: "interno", prefix: "VDI", subjectField: "numero", short: "Verbale Direttivo",
@@ -1460,6 +1532,7 @@ FORMS.verbale_direttivo = {
     "Il verbale è approvato nella seduta successiva e conservato dal Segretario."] },
   sections: [
     { title: "1. Seduta", fields: [
+      IMP_FILE,
       { id: "numero", t: "text", label: "Verbale n.", req: true, hint: "es. 5/2026" },
       { id: "data", t: "date", label: "Data della seduta", req: true, today: true },
       { id: "ora_inizio", t: "text", label: "Ora di inizio" }, { id: "ora_fine", t: "text", label: "Ora di chiusura" },
@@ -1483,7 +1556,8 @@ FORMS.verbale_direttivo = {
         { id: "decisione", t: "area", rows: 2, label: "Decisione" },
         { id: "esito", t: "radio", label: "Esito", opts: ["Approvato", "Respinto", "Rinviato", "Solo informativa"] },
         { id: "voti", t: "text", label: "Voti: favorevoli / contrari / astenuti", hint: "es. 7 / 1 / 0" },
-        { id: "conflitti", t: "text", label: "Astenuti per conflitto di interessi" }] }] },
+        { id: "conflitti", t: "text", label: "Astenuti per conflitto di interessi" }] },
+      IMP_SVOLG] },
     { title: "4. Seguiti", fields: [
       { id: "comunicazioni", t: "area", rows: 3, label: "Comunicazioni formali autorizzate", hint: "Art. 10 del Regolamento interno: oggetto, destinatario, firmatario, n. di protocollo interno" },
       { id: "incarichi", t: "area", rows: 2, label: "Incarichi assegnati", hint: "Chi fa che cosa ed entro quando" },
@@ -1493,7 +1567,8 @@ FORMS.verbale_direttivo = {
       { id: "data_firma", t: "date", label: "Data", today: true },
       { id: "firma", t: "sign", label: "Il Coordinatore che presiede" },
       { id: "firma_segretario", t: "sign", label: "Il Segretario verbalizzante" },
-      { id: "approvato_il", t: "date", label: "Verbale approvato nella seduta del" }] },
+      { id: "approvato_il", t: "date", label: "Verbale approvato nella seduta del" },
+      IMP_TESTO] },
   ],
   riservato: null,
 };
@@ -1508,6 +1583,7 @@ FORMS.verbale_tavolo = {
     "I Tavoli non decidono e non scrivono al Comune: le proposte vanno al Direttivo (art. 12 del Regolamento interno)."] },
   sections: [
     { title: "1. Riunione", fields: [
+      IMP_FILE,
       { id: "tavolo", t: "radio", label: "Tavolo", req: true, vertical: true, opts: ["Verde e beni comuni", "Strade e viabilità", "Ambiente e rifiuti", "Scuole, giovani e socialità", "Altro"] },
       { id: "tavolo_altro", t: "text", label: "Quale", showIf: ["tavolo", "Altro"] },
       { id: "numero", t: "text", label: "Riunione n.", hint: "es. 2/2026" },
@@ -1525,7 +1601,8 @@ FORMS.verbale_tavolo = {
         { id: "titolo", t: "text", label: "Argomento" },
         { id: "riferimento", t: "text", label: "Riferimento", hint: "es. Segnalazione SEG-2026-0012, Proposta PRO-2026-0003, Scheda progetto" },
         { id: "sintesi", t: "area", rows: 3, label: "Sintesi" },
-        { id: "proposta", t: "area", rows: 2, label: "Proposta da sottoporre al Direttivo" }] }] },
+        { id: "proposta", t: "area", rows: 2, label: "Proposta da sottoporre al Direttivo" }] },
+      IMP_SVOLG] },
     { title: "4. Azioni concordate", fields: [
       { id: "azioni", t: "items", label: "Azione", fields: [
         { id: "cosa", t: "text", label: "Che cosa" }, { id: "chi", t: "text", label: "Chi" }, { id: "entro", t: "date", label: "Entro" }] }] },
@@ -1533,7 +1610,8 @@ FORMS.verbale_tavolo = {
       { id: "prossima", t: "date", label: "Prossima riunione" },
       { id: "trasmesso", t: "date", label: "Resoconto trasmesso al Segretario il" },
       { id: "data_firma", t: "date", label: "Data", today: true },
-      { id: "firma", t: "sign", label: "Il Referente del Tavolo" }] },
+      { id: "firma", t: "sign", label: "Il Referente del Tavolo" },
+      IMP_TESTO] },
   ],
   riservato: null,
 };
@@ -1573,7 +1651,7 @@ FORMS.comunicazione = {
   riservato: null,
 };
 Object.keys(FORMS).forEach(k => { FORMS[k].key = k; });
-const ORDER = { cittadini: ["segnalazione", "proposte", "rifiuti", "adesione", "albo"], interno: ["verbale_direttivo", "verbale_tavolo", "scheda"], uscita: ["comunicazione"] };
+const ORDER = { cittadini: ["segnalazione", "proposte", "rifiuti", "adesione", "albo"], interno: ["verbale_assemblea", "verbale_direttivo", "verbale_tavolo", "scheda"], uscita: ["comunicazione"] };
 const STATI = {
   cittadini: ["Nuovo", "In lavorazione", "Accettato", "Inoltrato al Comune / ente", "Respinto", "Chiuso"],
   interno: ["Bozza", "Approvato", "Archiviato"],
@@ -1607,7 +1685,7 @@ const UI = (function () {
     clearTimeout(toast._t); toast._t = setTimeout(() => t.className = "", kind === "warn" ? 7000 : 4200);
   }
 
-  const visible = (f, values) => !f.showIf || values[f.showIf[0]] === f.showIf[1];
+  const visible = (f, values) => (!f.showIf || values[f.showIf[0]] === f.showIf[1]) && (!f.ifSet || !!values[f.ifSet]);
   const ageOf = (iso) => { if (!iso) return null; const b = new Date(iso), n = new Date(); let a = n.getFullYear() - b.getFullYear(); const m = n.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && n.getDate() < b.getDate())) a--; return a; };
 
   /* store: { values, sigs, atts, readonly, onChange() } */
@@ -1618,6 +1696,7 @@ const UI = (function () {
       const [k, val] = JSON.parse(w.dataset.showIf);
       w.hidden = store.values[k] !== val;
     });
+    (store.root || document).querySelectorAll(".field[data-if-set]").forEach(w => { w.hidden = !store.values[w.dataset.ifSet]; });
   }
 
   function fieldInput(f, get, set, store, idp) {
@@ -1775,6 +1854,7 @@ const UI = (function () {
   function renderField(f, store) {
     const wrap = el("div", { class: "field", "data-id": f.id || "" });
     if (f.showIf) wrap.dataset.showIf = JSON.stringify(f.showIf);
+    if (f.ifSet) wrap.dataset.ifSet = f.ifSet;
     const lab = el("label", { class: "lab", for: "f_" + f.id }, f.label, f.req ? el("span", { class: "req", "aria-hidden": "true" }, " *") : null);
     if (f.t === "info") { wrap.append(el("div", { class: "lab" }, f.label), el("p", { class: "info" }, f.text)); return wrap; }
     wrap.append(lab);
@@ -1982,7 +2062,7 @@ const PDFGEN = (function () {
   const fmtDate = (v) => { if (!v) return ""; const [y, m, d] = String(v).split("-"); return d ? `${d}/${m}/${y}` : v; };
   const b64ToBytes = (b64) => { const bin = atob(b64); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
   const duBytes = (du) => b64ToBytes(String(du).split(",")[1]);
-  const visible = (f, values) => !f.showIf || values[f.showIf[0]] === f.showIf[1];
+  const visible = (f, values) => (!f.showIf || values[f.showIf[0]] === f.showIf[1]) && (!f.ifSet || !!values[f.ifSet]) && !f.noPdf;
 
   /* Mappa statica per il PDF: compone le tessere OpenStreetMap attorno al punto (se raggiungibili) */
   async function staticMap(p, o = {}) {
@@ -2732,6 +2812,353 @@ const LETTERA = (function () {
   return { pdf, docx, eml, pec, tabella, dataLunga, corpo };
 })();
 </script>
+<script>/* Importazione di verbali già scritti: legge il testo di PDF, Word (.docx), LibreOffice (.odt) e testo semplice
+   direttamente nel browser (niente servizi esterni) e riconosce le voci principali del verbale.
+   Il risultato va sempre ricontrollato: il riconoscimento è automatico e prudente (lascia vuoto quando non è sicuro). */
+"use strict";
+const IMPORTA = (function () {
+  const utf8 = new TextDecoder("utf-8");
+  const latin = (u) => { let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return s; };
+
+  /* ------------------------------------------------------------ archivi ZIP (docx, odt) */
+  async function inflate(u8) {
+    const s = new Blob([u8]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    return new Uint8Array(await new Response(s).arrayBuffer());
+  }
+  async function unzip(buf, want) {
+    const u = buf instanceof Uint8Array ? buf : new Uint8Array(buf), dv = new DataView(u.buffer, u.byteOffset, u.byteLength);
+    let e = u.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+    if (e < 0) throw new Error("Il file non è un documento Word/LibreOffice valido.");
+    const n = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true); const out = {};
+    for (let i = 0; i < n && dv.getUint32(p, true) === 0x02014b50; i++) {
+      const meth = dv.getUint16(p + 10, true), csz = dv.getUint32(p + 20, true), nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lo = dv.getUint32(p + 42, true);
+      const name = utf8.decode(u.subarray(p + 46, p + 46 + nl));
+      if (want.includes(name)) {
+        const st = lo + 30 + dv.getUint16(lo + 26, true) + dv.getUint16(lo + 28, true), data = u.subarray(st, st + csz);
+        out[name] = meth === 0 ? data : await inflate(data);
+      }
+      p += 46 + nl + xl + cl;
+    }
+    return out;
+  }
+
+  /* ------------------------------------------------------------ Word (.docx) */
+  function docxText(xml) {
+    const d = new DOMParser().parseFromString(xml, "application/xml"), W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+    const body = d.getElementsByTagNameNS(W, "body")[0]; if (!body) return "";
+    const lines = [];
+    const para = (p) => { let s = "";
+      const walk = (n) => { for (const c of n.childNodes) { if (c.nodeType !== 1) continue; const ln = c.localName;
+        if (ln === "t") s += c.textContent; else if (ln === "tab") s += "\t"; else if (ln === "br" || ln === "cr") s += "\n";
+        else if (ln === "del" || ln === "delText" || ln === "instrText" || ln === "rPr" || ln === "pPr") { } else walk(c); } };
+      walk(p); return s; };
+    const block = (n) => { for (const c of n.childNodes) { if (c.nodeType !== 1) continue;
+      if (c.localName === "p") lines.push(para(c));
+      else if (c.localName === "tbl") {
+        for (const tr of [...c.childNodes].filter(x => x.localName === "tr")) {
+          const cells = [...tr.childNodes].filter(x => x.localName === "tc").map(tc => [...tc.getElementsByTagNameNS(W, "p")].map(para).join(" ").trim());
+          lines.push(cells.filter(Boolean).join(" – "));
+        }
+        lines.push("");
+      } else if (["sdt", "sdtContent", "customXml", "ins", "smartTag"].includes(c.localName)) block(c); } };
+    block(body);
+    return lines.join("\n");
+  }
+
+  /* ------------------------------------------------------------ LibreOffice (.odt) */
+  function odtText(xml) {
+    const d = new DOMParser().parseFromString(xml, "application/xml"), lines = [];
+    const inl = (n) => { let s = ""; for (const c of n.childNodes) {
+      if (c.nodeType === 3) s += c.nodeValue;
+      else if (c.nodeType === 1) { const ln = c.localName;
+        if (ln === "s") s += " ".repeat(+c.getAttribute("text:c") || 1); else if (ln === "tab") s += "\t"; else if (ln === "line-break") s += "\n";
+        else if (ln === "note" || ln === "annotation") { } else s += inl(c); } } return s; };
+    const walk = (n) => { for (const c of n.childNodes) { if (c.nodeType !== 1) continue; const ln = c.localName;
+      if (ln === "p" || ln === "h") lines.push(inl(c));
+      else if (ln === "table-row") { const cells = [...c.childNodes].filter(x => x.localName === "table-cell").map(tc => inl(tc).trim()); lines.push(cells.filter(Boolean).join(" – ")); }
+      else walk(c); } };
+    const body = d.getElementsByTagName("office:text")[0] || d.documentElement; walk(body);
+    return lines.join("\n");
+  }
+
+  /* ------------------------------------------------------------ PDF (con testo; le scansioni non hanno testo) */
+  const WIN = "€\u0081‚ƒ„…†‡ˆ‰Š‹Œ\u008dŽ\u008f\u0090‘’“”•–—˜™š›œ\u009džŸ";
+  const winAnsi = (c) => c >= 0x80 && c <= 0x9f ? WIN[c - 0x80] : String.fromCharCode(c);
+  function cmap(txt, map) {
+    const u16 = (h) => { if (h.length <= 2) return String.fromCharCode(parseInt(h, 16)); let s = ""; for (let i = 0; i + 4 <= h.length; i += 4) s += String.fromCharCode(parseInt(h.substr(i, 4), 16)); return s; };
+    for (const sec of txt.matchAll(/beginbfchar([\s\S]*?)endbfchar/g))
+      for (const m of sec[1].matchAll(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]*)>/g)) map.set(parseInt(m[1], 16), u16(m[2]));
+    for (const sec of txt.matchAll(/beginbfrange([\s\S]*?)endbfrange/g))
+      for (const m of sec[1].matchAll(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*(<[0-9A-Fa-f]*>|\[[^\]]*\])/g)) {
+        const a = parseInt(m[1], 16), b = parseInt(m[2], 16);
+        if (b - a > 65535) continue;
+        if (m[3][0] === "[") { const l = [...m[3].matchAll(/<([0-9A-Fa-f]*)>/g)].map(x => u16(x[1])); for (let c = a; c <= b && c - a < l.length; c++) map.set(c, l[c - a]); }
+        else { const base = u16(m[3].slice(1, -1)); for (let c = a; c <= b; c++) map.set(c, base.slice(0, -1) + String.fromCharCode(base.charCodeAt(base.length - 1) + (c - a))); }
+      }
+  }
+  function lexer(s) {
+    let i = 0; const n = s.length;
+    const isWs = (c) => c === 32 || c === 10 || c === 13 || c === 9 || c === 12 || c === 0;
+    const isDel = (c) => isWs(c) || c === 40 || c === 41 || c === 60 || c === 62 || c === 91 || c === 93 || c === 123 || c === 125 || c === 47 || c === 37;
+    return function next() {
+      while (i < n) { const c = s.charCodeAt(i); if (isWs(c)) i++; else if (c === 37) { while (i < n && s[i] !== "\n" && s[i] !== "\r") i++; } else break; }
+      if (i >= n) return null;
+      const c = s[i];
+      if (c === "(") { let d = 1, out = ""; i++;
+        while (i < n && d > 0) { const ch = s[i++];
+          if (ch === "\\") { const e = s[i++];
+            if (e === "n") out += "\n"; else if (e === "r") out += "\r"; else if (e === "t") out += "\t"; else if (e === "b") out += "\b"; else if (e === "f") out += "\f";
+            else if (e >= "0" && e <= "7") { let o = e; while (o.length < 3 && s[i] >= "0" && s[i] <= "7") o += s[i++]; out += String.fromCharCode(parseInt(o, 8) & 255); }
+            else if (e === "\r") { if (s[i] === "\n") i++; } else if (e === "\n") { } else out += e; }
+          else if (ch === "(") { d++; out += ch; } else if (ch === ")") { d--; if (d) out += ch; } else out += ch; }
+        return { t: "s", v: out }; }
+      if (c === "<") { if (s[i + 1] === "<") { i += 2; return { t: "op", v: "<<" }; }
+        const j = s.indexOf(">", i); let h = s.slice(i + 1, j).replace(/\s+/g, ""); i = j + 1; if (h.length % 2) h += "0";
+        let out = ""; for (let k = 0; k < h.length; k += 2) out += String.fromCharCode(parseInt(h.substr(k, 2), 16)); return { t: "s", v: out }; }
+      if (c === ">" && s[i + 1] === ">") { i += 2; return { t: "op", v: ">>" }; }
+      if (c === "[" || c === "]" || c === "{" || c === "}") { i++; return { t: c }; }
+      if (c === "/") { let j = i + 1; while (j < n && !isDel(s.charCodeAt(j))) j++; const v = s.slice(i + 1, j); i = j; return { t: "n", v }; }
+      let j = i; while (j < n && !isDel(s.charCodeAt(j))) j++; if (j === i) j++;
+      const w = s.slice(i, j); i = j;
+      if (/^[+-]?(\d+\.?\d*|\.\d+)$/.test(w)) return { t: "num", v: parseFloat(w) };
+      if (w === "BI") { const k = s.indexOf("EI", i); i = k < 0 ? n : k + 2; return { t: "op", v: "BI" }; }
+      return { t: "op", v: w };
+    };
+  }
+  const mul = (m, k) => [m[0] * k[0] + m[1] * k[2], m[0] * k[1] + m[1] * k[3], m[2] * k[0] + m[3] * k[2], m[2] * k[1] + m[3] * k[3], m[4] * k[0] + m[5] * k[2] + k[4], m[4] * k[1] + m[5] * k[3] + k[5]];
+
+  async function pdfText(bytes) {
+    const { PDFDocument, PDFName, PDFRef, PDFArray, PDFDict, PDFNumber, PDFRawStream, decodePDFRawStream } = PDFLib;
+    const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+    const ctx = doc.context, L = (o) => o instanceof PDFRef ? ctx.lookup(o) : o, N = (k) => PDFName.of(k);
+    const num = (o) => { o = L(o); return o instanceof PDFNumber ? o.asNumber() : (o && o.asNumber ? o.asNumber() : 0); };
+    const bytesOf = (st) => { st = L(st); if (!st) return new Uint8Array(0); try { return st instanceof PDFRawStream ? decodePDFRawStream(st).decode() : st.getContents(); } catch (e) { return new Uint8Array(0); } };
+    const fonts = new Map();
+    function fontOf(ref) {
+      const key = ref instanceof PDFRef ? ref.toString() : ref; if (fonts.has(key)) return fonts.get(key);
+      const f = L(ref), sub = String(f && f.get(N("Subtype")) || ""), two = sub === "/Type0", map = new Map();
+      const tu = f && f.get(N("ToUnicode")); if (tu) { try { cmap(latin(bytesOf(tu)), map); } catch (e) { } }
+      let wd = (c) => 500;
+      try {
+        if (two) { const ds = L(L(f.get(N("DescendantFonts"))).get(0)), dw = num(ds.get(N("DW"))) || 1000, W = L(ds.get(N("W"))), wm = new Map();
+          if (W instanceof PDFArray) for (let k = 0; k < W.size();) { const a = num(W.get(k)), b = L(W.get(k + 1));
+            if (b instanceof PDFArray) { for (let q = 0; q < b.size(); q++) wm.set(a + q, num(b.get(q))); k += 2; } else { const e = num(b), w = num(W.get(k + 2)); for (let q = a; q <= e; q++) wm.set(q, w); k += 3; } }
+          wd = (c) => wm.has(c) ? wm.get(c) : dw; }
+        else { const fc = num(f.get(N("FirstChar"))), W = L(f.get(N("Widths"))); if (W instanceof PDFArray) { const arr = []; for (let k = 0; k < W.size(); k++) arr.push(num(W.get(k))); wd = (c) => arr[c - fc] || 0; } }
+      } catch (e) { }
+      const o = { two, dec(s) { const out = []; if (two) { for (let k = 0; k + 1 < s.length; k += 2) { const c = (s.charCodeAt(k) << 8) | s.charCodeAt(k + 1); out.push([map.has(c) ? map.get(c) : "", c]); } }
+        else for (let k = 0; k < s.length; k++) { const c = s.charCodeAt(k); out.push([map.has(c) ? map.get(c) : winAnsi(c), c]); } return out; }, w: wd };
+      fonts.set(key, o); return o;
+    }
+    const pages = [];
+    for (const page of doc.getPages()) {
+      const runs = [];
+      const run = (content, res, ctm0) => {
+        const fontsD = res && L(res.get(N("Font"))), xo = res && L(res.get(N("XObject")));
+        const next = lexer(latin(content)); let st = [], arr = null;
+        let ctm = ctm0.slice(), stack = [], tm = [1, 0, 0, 1, 0, 0], tlm = tm.slice(), font = null, fs = 10, tl = 0, tc = 0, tw = 0, th = 1, rise = 0;
+        const show = (s) => { if (!font) return; const g = font.dec(s); let txt = "";
+          const m = mul([fs * th, 0, 0, fs, 0, rise], mul(tm, ctm)); const x0 = m[4], y0 = m[5], size = Math.hypot(m[2], m[3]) || fs;
+          for (const [u, c] of g) { txt += u; const adv = ((font.w(c) / 1000) * fs + tc + (!font.two && c === 32 ? tw : 0)) * th; tm = mul([1, 0, 0, 1, adv, 0], tm); }
+          const e = mul([1, 0, 0, 1, 0, 0], mul(tm, ctm)); runs.push({ x: x0, y: y0, x1: e[4], s: txt, size }); };
+        let t;
+        while ((t = next())) {
+          if (t.t === "[") { arr = []; continue; }
+          if (t.t === "]") { st.push({ t: "arr", v: arr }); arr = null; continue; }
+          if (arr) { arr.push(t); continue; }
+          if (t.t !== "op") { st.push(t); continue; }
+          const a = st.map(x => x.v); st = [];
+          switch (t.v) {
+            case "q": stack.push(ctm.slice()); break;
+            case "Q": ctm = stack.pop() || ctm; break;
+            case "cm": if (a.length >= 6) ctm = mul(a.slice(-6), ctm); break;
+            case "BT": tm = [1, 0, 0, 1, 0, 0]; tlm = tm.slice(); break;
+            case "Tf": { const nm = a[a.length - 2]; fs = a[a.length - 1] || fs; const r = fontsD && fontsD.get(N(String(nm))); font = r ? fontOf(r) : null; break; }
+            case "TL": tl = a[0]; break; case "Tc": tc = a[0]; break; case "Tw": tw = a[0]; break; case "Tz": th = a[0] / 100; break; case "Ts": rise = a[0]; break;
+            case "Td": tlm = mul([1, 0, 0, 1, a[0], a[1]], tlm); tm = tlm.slice(); break;
+            case "TD": tl = -a[1]; tlm = mul([1, 0, 0, 1, a[0], a[1]], tlm); tm = tlm.slice(); break;
+            case "Tm": tlm = a.slice(-6); tm = tlm.slice(); break;
+            case "T*": tlm = mul([1, 0, 0, 1, 0, -tl], tlm); tm = tlm.slice(); break;
+            case "Tj": show(a[0] || ""); break;
+            case "'": tlm = mul([1, 0, 0, 1, 0, -tl], tlm); tm = tlm.slice(); show(a[0] || ""); break;
+            case "\"": tw = a[0]; tc = a[1]; tlm = mul([1, 0, 0, 1, 0, -tl], tlm); tm = tlm.slice(); show(a[2] || ""); break;
+            case "TJ": for (const it of (a[0] || [])) { if (it.t === "s") show(it.v); else if (it.t === "num") { const d = -it.v / 1000 * fs * th; tm = mul([1, 0, 0, 1, d, 0], tm); if (it.v < -250 && runs.length) runs.push({ x: NaN, s: " " }); } } break;
+            case "Do": { const x = xo && L(xo.get(N(String(a[0])))); if (x && x.dict && String(x.dict.get(N("Subtype"))) === "/Form") {
+              const mx = L(x.dict.get(N("Matrix"))), mm = mx instanceof PDFArray ? [0, 1, 2, 3, 4, 5].map(k => num(mx.get(k))) : [1, 0, 0, 1, 0, 0];
+              run(bytesOf(x), L(x.dict.get(N("Resources"))) || res, mul(mm, ctm)); } break; }
+          }
+        }
+      };
+      const cont = page.node.Contents(), parts = !cont ? [] : cont instanceof PDFArray ? [...Array(cont.size()).keys()].map(k => bytesOf(cont.get(k))) : [bytesOf(cont)];
+      const all = new Uint8Array(parts.reduce((s, p) => s + p.length + 1, 0)); let o = 0; for (const p of parts) { all.set(p, o); o += p.length; all[o++] = 10; }
+      run(all, page.node.Resources(), [1, 0, 0, 1, 0, 0]);
+      pages.push(righe(runs));
+    }
+    return pages.join("\n\n");
+  }
+  /* compone le righe: ordina per riga (y) e poi per x, inserisce gli spazi dove c'è uno stacco e le righe vuote tra i paragrafi */
+  function righe(runs) {
+    const R = []; for (const r of runs) { if (isNaN(r.x)) { if (R.length) R[R.length - 1].sp = true; continue; } if (r.s) R.push(r); }
+    if (!R.length) return "";
+    const lines = [];
+    for (const r of R) {
+      const l = lines.find(z => Math.abs(z.y - r.y) < Math.max(2, r.size * 0.45));
+      if (l) l.r.push(r); else lines.push({ y: r.y, r: [r], size: r.size });
+    }
+    lines.sort((a, b) => b.y - a.y);
+    const out = []; let prev = null;
+    for (const l of lines) {
+      l.r.sort((a, b) => a.x - b.x);
+      let s = "", end = null;
+      for (const r of l.r) { if (end !== null && (r.x - end > r.size * 0.18) && !/\s$/.test(s) && !/^\s/.test(r.s)) s += " "; s += r.s; if (r.sp && !/\s$/.test(s)) s += " "; end = r.x1; }
+      if (prev && prev.y - l.y > Math.max(prev.size, l.size) * 1.75) out.push("");
+      out.push(s.replace(/\s+$/, "")); prev = l;
+    }
+    return out.join("\n");
+  }
+
+  /* ------------------------------------------------------------ lettura del file */
+  async function testo(file) {
+    const name = (file.name || "").toLowerCase(), buf = new Uint8Array(await file.arrayBuffer());
+    const head = latin(buf.subarray(0, 8));
+    if (head.startsWith("%PDF") || name.endsWith(".pdf")) return { tipo: "pdf", testo: pulisci(await pdfText(buf)) };
+    if (head.startsWith("PK")) {
+      const z = await unzip(buf, ["word/document.xml", "content.xml"]);
+      if (z["word/document.xml"]) return { tipo: "docx", testo: pulisci(docxText(utf8.decode(z["word/document.xml"]))) };
+      if (z["content.xml"]) return { tipo: "odt", testo: pulisci(odtText(utf8.decode(z["content.xml"]))) };
+      throw new Error("Formato non riconosciuto: usa un file PDF, Word (.docx) o LibreOffice (.odt).");
+    }
+    if (head.startsWith("\xD0\xCF\x11\xE0")) throw new Error("È un documento Word del vecchio formato (.doc): aprilo con Word e salvalo come .docx o PDF, poi importalo.");
+    if (/\.(txt|md)$/.test(name)) return { tipo: "txt", testo: pulisci(utf8.decode(buf)) };
+    throw new Error("Formato non riconosciuto: usa un file PDF, Word (.docx) o LibreOffice (.odt).");
+  }
+  const pulisci = (t) => String(t || "").replace(/\r\n?/g, "\n").replace(/[   ]/g, " ").replace(/­/g, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+
+  /* ------------------------------------------------------------ riconoscimento delle voci */
+  const MESI = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+  const iso = (y, m, d) => { y = +y; m = +m; d = +d; if (y < 100) y += 2000; if (!(m >= 1 && m <= 12 && d >= 1 && d <= 31 && y > 1990 && y < 2100)) return ""; return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`; };
+  function dataDa(s, anno) {
+    const c = [], M = "(" + MESI.join("|") + ")";
+    const a = s.match(new RegExp("\\b(\\d{1,2})\\s*(?:°|º)?\\s+" + M + "\\s+(\\d{4})\\b", "i")); if (a) c.push([a.index, iso(a[3], MESI.indexOf(a[2].toLowerCase()) + 1, a[1])]);
+    const b = s.match(/\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4}|\d{2})\b/); if (b) c.push([b.index, iso(b[3], b[2], b[1])]);
+    if (anno) { const d = s.match(new RegExp("\\b(\\d{1,2})\\s*(?:°|º)?\\s+" + M + "\\b(?!\\s+\\d{4})", "i")); if (d) c.push([d.index + 0.5, iso(anno, MESI.indexOf(d[2].toLowerCase()) + 1, d[1])]); }
+    c.sort((x, y) => x[0] - y[0]); return (c.find(x => x[1]) || [])[1] || "";
+  }
+  /* testo a capo riga per riga (come nei PDF): riunisce le righe dello stesso paragrafo */
+  const rifluisci = (s) => String(s || "").split(/\n\s*\n/).map(p => {
+    const L = p.split("\n"), max = Math.max(...L.map(x => x.trim().length)); let out = L[0] || "";
+    for (let k = 1; k < L.length; k++) { const prev = L[k - 1].trim(), cur = L[k].trim();
+      const a_capo = /[.:;!?]$/.test(prev) || /^(?:\d+[.)]|[-•–])\s/.test(cur) || (prev.length < max * 0.7 && /^[A-ZÀ-Ý]/.test(cur));
+      out += (a_capo ? "\n" : " ") + cur; }
+    return out; }).join("\n\n");
+  /* punti numerati del corpo («1. Argomento: discussione…») */
+  function punti(s) {
+    const parts = ("\n" + s).split(/\n\s*(\d{1,2})[.)]\s+/); const out = [];
+    for (let k = 1; k + 1 < parts.length; k += 2) { if (+parts[k] !== out.length + 1) break;
+      let body = rifluisci(parts[k + 1].split(/\n(?=\s*(?:prossim[oa]\s+(?:incontro|seduta|riunione)|terminat|esaurit|non essendovi|letto[,.]|la riunione (?:si chiude|termina|è chiusa)|la seduta (?:è tolta|si chiude|termina)|il segretari|la segretari|il president|la president|il coordinat\w+\s*$))/i)[0]).trim();
+      const m = body.match(/^([^:\n]{3,110}):\s*([\s\S]*)$/);
+      out.push(m ? { titolo: m[1].trim(), discussione: m[2].trim() } : { titolo: body.length > 110 ? body.slice(0, 100).replace(/\s+\S*$/, "") + "…" : body, discussione: body.length > 110 ? body : "" }); }
+    return out;
+  }
+  const ora = (h, m) => `${String(+h).padStart(2, "0")}:${m}`;
+  const NOME = "[A-ZÀ-Ý][a-zà-ÿA-ZÀ-Ý'’]+(?:[ ]+(?:de |di |del |della |dal |lo |la )?[A-ZÀ-Ý][a-zà-ÿA-ZÀ-Ý'’]+){1,3}";
+  function nomeDopo(t, kw) {
+    const m = t.match(kw); if (!m) return "";
+    const rest = t.slice(m.index + m[0].length, m.index + m[0].length + 90).replace(/^[\s:–\-,]*(?:(?:il|la|lo|l'|dal|dalla|sig\.?(?:ra)?|dott\.?(?:ssa)?|geom\.?|arch\.?|ing\.?|avv\.?|coordinat(?:ore|rice)|consigliere|consigliera|segretari[oa])\s+)*/i, "");
+    const n = rest.match(new RegExp("^" + NOME)); return n ? n[0].trim() : "";
+  }
+  const nomeRuolo = (t, ruolo) => { const m = t.match(new RegExp("(" + NOME + ")\\s*\\(\\s*" + ruolo, "i")); return m ? m[1].trim() : ""; };
+  const blocco = (t, re) => { const m = t.match(re); return m ? m[1].replace(/\s*\n\s*/g, " ").replace(/\s{2,}/g, " ").replace(/[\s.;,]+$/, "").trim() : ""; };
+  const conta = (s) => s ? s.split(/[,;\n]|\s+e\s+/).map(x => x.replace(/\([^)]*\)/g, "").trim()).filter(x => /[A-Za-zÀ-ÿ]{2}/.test(x)).length : 0;
+  const elenco = (s) => {
+    if (!s) return [];
+    let v = /\n\s*(?:\d+[.)]|[a-z][.)]|[-•–])\s+/.test("\n" + s) ? ("\n" + s).split(/\n\s*(?:\d+[.)]|[a-z][.)]|[-•–])\s+/) : s.split(/;|\n/);
+    v = v.map(x => x.replace(/\s*\n\s*/g, " ").replace(/^\s*(?:\d+[.)°]|[a-z][.)]|[-•–])\s*/, "").replace(/[\s.;,]+$/, "").trim()).filter(x => x.length > 2);
+    return v.slice(0, 20);
+  };
+  const STOP = "(?:\\n\\s*\\n|\\n\\s*(?:sono\\s+)?(?:presenti|assenti|risultano|partecipano|presiede|alle ore|l['’]assemblea|la seduta|la riunione|il direttivo|il consiglio|i coordinatori|il coordinatore|si apre|apertura|ordine del giorno|luogo)\\b)";
+
+  function riconosci(text, nomeFile, tipo) {
+    const t = String(text || ""), testa = t.slice(0, 1500), low = testa.toLowerCase();
+    if (!tipo) { const pos = [["verbale_assemblea", /assemblea/], ["verbale_tavolo", /tavolo|gruppo di lavoro/], ["verbale_direttivo", /direttivo|consiglio direttivo/]].map(([k, re]) => [k, low.search(re)]).filter(x => x[1] >= 0).sort((a, b) => a[1] - b[1]);
+      tipo = pos.length ? pos[0][0] : "verbale_direttivo"; }
+    const v = {}, ok = [];
+    const put = (k, x, lab) => { if (x === undefined || x === null || x === "" || (Array.isArray(x) && !x.length)) return; v[k] = x; if (lab) ok.push(lab); };
+    // numero, data, ore
+    let n = testa.match(/verbale\s*(?:n\.?|nr\.?|numero|n°)\s*[:.]?\s*(\d{1,3})\s*[\/\-_]\s*(\d{2,4})/i) || testa.match(/\b(?:n\.|n°)\s*(\d{1,3})\s*\/\s*(\d{4})\b/i) || String(nomeFile || "").match(/(?:^|[^\d])(\d{1,2})[\s\-_\/](20\d{2})(?:[^\d]|$)/);
+    if (n) put("numero", `${+n[1]}/${n[2].length === 2 ? "20" + n[2] : n[2]}`, "numero");
+    const anno = v.numero ? v.numero.split("/")[1] : ((String(nomeFile || "").match(/20\d{2}/) || [])[0] || "");
+    put("data", dataDa(testa) || dataDa(t) || dataDa(testa, anno), "data");
+    const ini = testa.slice(0, 400).match(/(?:\bore|\bh\.)\s*(\d{1,2})[:.,](\d{2})/i) || t.match(/(?:inizi[ao]|ha inizio|si apre|apert[ao]|apertura|riunisce|riunito|riunita|convocat[oa])[^\n]{0,60}?(?:alle\s+)?ore\s*(\d{1,2})[:.,](\d{2})/i) || t.match(/(?:inizi[ao]|ha inizio|si apre)[^\n]{0,40}?(\d{1,2})[:.,](\d{2})/i) || testa.match(/\balle\s+ore\s*(\d{1,2})[:.,](\d{2})/i);
+    const fin = [...t.matchAll(/(?:chiud\w*|chius[ao]|termin\w*|conclu\w*|tolta|sciolta)[^\n]{0,60}?(?:ore\s*)?(\d{1,2})[:.,](\d{2})/gi)].pop();
+    if (ini) put("ora_inizio", ora(ini[1], ini[2]), "ora di inizio");
+    if (fin && (!ini || fin.index > ini.index)) put("ora_fine", ora(fin[1], fin[2]), "ora di chiusura");
+    // luogo e modalità
+    const lu = blocco(testa, /\bluogo\s*[:\-–]\s*([^\n]+)/i) || blocco(testa, /(?:\bpresso|\bc\/o|nei locali (?:di|della|del)|nella sede (?:di|della|del))\s+((?:[^\n,.;()]|\([^)\n]{0,60}\)){3,90})/i);
+    put("luogo", lu.replace(/^(?:la|il|lo|l')\s+/i, ""), "luogo");
+    const remoto = /videoconferenza|video-conferenza|collegamento (?:audio|video|telematico|da remoto)|da remoto|google meet|zoom|teams|on ?line/i.test(testa);
+    if (remoto) put("modalita", /presenza|presso|sede/i.test(testa) ? "Mista" : "In collegamento audio-video", "modalità"); else if (lu) put("modalita", "In presenza");
+    // ordine del giorno
+    const odg = elenco((t.match(new RegExp("ordine del giorno\\s*(?:è il seguente|:|-|–)?\\s*:?\\s*([\\s\\S]{3,1500}?)(?=" + STOP + "|$)", "i")) || [])[1]);
+    // presenze
+    const pres = blocco(t, /(?:^|\n)\s*(?:sono\s+|risultano\s+)?(?:presenti|partecipano)\b(?:\s+(?:i consiglieri|i componenti|i signori|alla seduta|alla riunione))?\s*[:\-–]?\s*([\s\S]{3,1500}?)(?=\n\s*\n|\n(?=[A-ZÀ-Ý][^\n–:]{2,40}\s[–:])|\n?\s*assent[ie]\b|\n\s*(?:l['’]assemblea|la seduta|la riunione|alle ore|presiede|il coordinatore|i coordinatori|ordine del giorno))/i);
+    const giust = blocco(t, /assent[ie]\s+giustificat[ie]\s*[:\-–]?\s*([\s\S]{3,600}?)(?=\n\s*\n|\.\s*\n|\n\s*assent|\n(?=[A-ZÀ-Ý][^\n–:]{2,40}\s[–:])|\n\s*(?:l['’]assemblea|la seduta|la riunione|alle ore|presiede|il coordinatore|i coordinatori))/i);
+    const ingiu = blocco(t, /assent[ie](?:\s+(?:non giustificat[ie]|ingiustificat[ie]))\s*[:\-–]?\s*([^\n]{3,400})/i) || (!giust ? blocco(t, /\bassent[ie]\s*[:\-–]\s*([^\n]{3,400})/i) : "");
+    let pres2 = pres, altri = ""; const cut = pres.match(/\.\s+(?=[A-ZÀ-Ý][^:.]{0,60}:)/); if (cut) { pres2 = pres.slice(0, cut.index).trim(); altri = pres.slice(cut.index + 1).trim(); }
+    const prox = [...t.matchAll(/prossim[oa]\s+(?:incontro|seduta|riunione|direttivo|assemblea)[^\n]{0,120}/gi)].map(m => m[0]).find(x => /\d/.test(x)) || "";
+    const pts = punti(t);
+    const items = (pts.length >= 2 ? pts.map((p, k) => odg.length === pts.length ? { titolo: odg[k], discussione: p.discussione || p.titolo } : p) : odg.map(x => ({ titolo: x }))).map(it => {
+      const d = it.discussione || ""; if (!d) return it;
+      const vt = d.match(/(\d+)\s+(?:voti\s+)?favorevoli[^\d]{0,20}(\d+)\s+contrari(?:[^\d]{0,20}(\d+)\s+astenut)?/i); if (vt) it.voti = `${vt[1]} / ${vt[2]} / ${vt[3] || 0}`;
+      if (/all['’]unanimità/i.test(d) && !it.voti) it.voti = "all'unanimità";
+      const dc = (d.match(/(?:[^.]|\.(?=\d))*\b(?:approva\w*|delibera\w*|decide\w*|respint\w*|rinvia\w*|all['’]unanimità|a maggioranza)\b(?:[^.]|\.(?=\d))*(?:\.(?!\d)|$)/gi) || []).map(x => x.trim()); if (dc.length && dc.join(" ") !== d.trim()) it.decisione = dc.join(" ");
+      it.esito = /respint/i.test(d) ? "Respinto" : /rinvia/i.test(d) ? "Rinviato" : /approvat|all['’]unanimità|a maggioranza|ha votato|delibera|decide/i.test(d) ? "Approvato" : /informa|illustra|comunica|relazione/i.test(d) ? "Solo informativa" : "";
+      if (!it.esito) delete it.esito; return it; });
+    // chi presiede e chi verbalizza
+    const pr = nomeDopo(t, /(?:presiede(?:\s+la\s+(?:seduta|riunione|assemblea))?|presieduta\s+da|presidente(?:\s+della\s+(?:seduta|riunione))?\s*:|(?:^|\n)[ \t]*(?:il\s+|la\s+)?president[ea][ \t]*(?=\n))/i) || nomeRuolo(pres || t, "coordinat");
+    const se = nomeDopo(t, /(?:segretari[oa]\s+verbalizzante|verbalizzante|redatt(?:ore|rice)\s+del\s+verbale|redige\s+il\s+(?:presente\s+)?verbale|verbalizza|funge\s+da\s+segretari[oa]|svolge\s+le\s+funzioni\s+di\s+segretari[oa]|(?:^|\n)[ \t]*(?:il\s+|la\s+)?segretari[oa](?:\s+verbalizzante)?[ \t]*(?=\n))/i) || nomeRuolo(pres || t, "segretari");
+    // validità
+    const nonLegale = /(?:non\s+(?:è\s+|viene\s+|risulta\s+)?(?:stato\s+)?raggiunt[oa]\s+il\s+numero\s+legale|mancanza\s+del\s+numero\s+legale|numero\s+legale\s+non\s+(?:è\s+)?raggiunto)/i.test(t);
+    const legale = !nonLegale && /(?:numero\s+legale|validamente\s+costituit[ao]|regolarmente\s+costituit[ao]|seduta\s+(?:è\s+)?valida|quorum\s+(?:è\s+)?raggiunto)/i.test(t);
+    // svolgimento: il testo dopo l'intestazione (presenze, ordine del giorno), senza le righe delle firme
+    const marks = [/ordine del giorno/i, /(?:^|\n)\s*(?:sono\s+)?presenti/i, /assent[ie]\s+giustificat/i, /\bluogo\s*:/i].map(re => { const m = t.match(re); if (!m) return -1; const k = t.indexOf("\n\n", m.index + m[0].length); const k2 = t.indexOf("\n", m.index + m[0].length + 40); return Math.max(k, k2); });
+    let start = Math.max(0, ...marks.filter(x => x > 0)); if (start > t.length * 0.6) start = 0;
+    let corpo = rifluisci(t.slice(start)).replace(/\n\s*(?:il|la)\s+(?:segretari[oa]|coordinat(?:ore|rice)|president[ea]|verbalizzante|redatt(?:ore|rice))[^\n]{0,80}$/gim, "").trim();
+    if (corpo.length > 20000) corpo = corpo.slice(0, 20000) + "…";
+    const dec = (t.replace(/\n/g, " ").match(/(?:[^.]|\.(?=\d))*?\b(?:approva(?:to|ta|no)?|delibera(?:to|ta|no)?|all['’]unanimità|a maggioranza|messo ai voti|messa ai voti)\b(?:[^.]|\.(?=\d))*\.(?!\d)/gi) || []).map(x => x.trim()).filter(x => x.length > 15).slice(0, 15);
+
+    if (tipo === "verbale_assemblea") {
+      put("presidente", pr, "presidenza"); put("verbalizzante", se, "segretario");
+      put("direttivo_presenti", pres2, "presenti"); put("ospiti", altri);
+      const ad = t.match(/(\d{1,4})\s+(?:aderenti\s+)?su\s+(\d{1,4})(?=[^\n]{0,30}aderent|\s*$|\s*[.,;\n])/i) || t.match(/aderenti presenti[^\d\n]{0,15}(\d{1,4})(?:\s+su\s+(\d{1,4}))?/i);
+      if (ad) { put("n_aderenti_presenti", ad[1], "aderenti presenti"); if (ad[2]) put("n_aderenti", ad[2]); } put("direttivo_assenti", [giust, ingiu].filter(Boolean).join("; "), "assenti");
+      if (nonLegale) put("numero_legale", "Non raggiunto: solo incontro informativo, senza votazioni", "numero legale"); else if (legale) put("numero_legale", "Raggiunto: presente almeno il 30% degli aderenti, l'Assemblea può deliberare", "numero legale");
+      if (/assemblea\s+pubblica|incontro\s+(?:pubblico|informativo)/i.test(testa) || nonLegale) put("tipo", "Assemblea pubblica / incontro informativo");
+      else if (/programma\s+annuale|relazione\s+(?:annuale|del direttivo)/i.test(t)) put("tipo", "Ordinaria annuale (programma e relazione del Direttivo)");
+      else if (/su\s+richiesta|25\s*%|straordinaria/i.test(testa)) put("tipo", "Su richiesta del Sindaco o del 25% degli aderenti");
+      put("odg", items, "ordine del giorno");
+      put("svolgimento", corpo, "svolgimento"); put("decisioni", dec.join("\n"), dec.length ? "deliberazioni" : "");
+    } else if (tipo === "verbale_direttivo") {
+      put("presidente", pr, "presidenza"); put("verbalizzante", se, "segretario");
+      put("presenti", pres2, "presenti"); if (pres2) put("n_presenti", String(conta(pres2))); put("altri", altri);
+      put("assenti_giust", giust, giust ? "assenti giustificati" : ""); put("assenti_ingiust", ingiu);
+      if (legale) put("numero_legale", true, "numero legale");
+      const ci = /terzo dei componenti|un terzo/i.test(testa) ? "Un terzo dei componenti" : /convocat[oa] dai coordinatori|su convocazione dei coordinatori/i.test(t) ? "Coordinatori" : ""; put("convocata_da", ci);
+      put("odg", items, "ordine del giorno"); put("prossima", dataDa(prox, (v.data || "").slice(0, 4) || anno));
+      put("svolgimento", corpo, "svolgimento");
+    } else if (tipo === "verbale_tavolo") {
+      put("referente", pr || se, "referente"); put("componenti", pres, "partecipanti");
+      if (v.ora_inizio) { put("orario", v.ora_inizio + (v.ora_fine ? " – " + v.ora_fine : "")); delete v.ora_inizio; delete v.ora_fine; }
+      put("argomenti", items.map(x => ({ titolo: x.titolo, sintesi: x.discussione || "" })), "argomenti"); put("prossima", dataDa(prox, (v.data || "").slice(0, 4) || anno));
+      put("svolgimento", corpo, "svolgimento");
+    }
+    return { tipo, values: v, trovati: ok.filter(Boolean) };
+  }
+
+  return { testo, riconosci, pdfText, docxText, odtText, unzip };
+})();
+if (typeof module !== "undefined") module.exports = IMPORTA;
+</script>
 <script>"use strict";
 (function () {
   const { $, el, toast, fmtDate, slug, b64ToBytes } = UI;
@@ -3131,7 +3558,7 @@ const LETTERA = (function () {
         ...(cit ? [] : [(r.firme || []).map(x => x.nome + " (" + x.quando + ")").join("; ")]),
         (r.note || []).map(n => n.quando + " – " + n.chi + ": " + n.testo).join("\n"), (r.atts || []).length || "", it.cartella || "", it.pdf || ""]); });
     const widths = head.map((h, i) => i === 0 ? 16 : /descri|note|annota|discuss|sintesi|testo|motiv|propost/i.test(h) ? 48 : /indirizzo|luogo|oggetto|titolo/i.test(h) ? 32 : Math.min(28, Math.max(12, h.length + 2)));
-    const XN = { segnalazione: "Segnalazioni", proposte: "Proposte", rifiuti: "Rifiuti", adesione: "Adesioni", albo: "Albo Volontari", verbale_direttivo: "Verbali Direttivo", verbale_tavolo: "Tavoli tematici", scheda: "Schede progetto", comunicazione: "Comunicazioni ufficiali" };
+    const XN = { segnalazione: "Segnalazioni", proposte: "Proposte", rifiuti: "Rifiuti", adesione: "Adesioni", albo: "Albo Volontari", verbale_assemblea: "Verbali Assemblea", verbale_direttivo: "Verbali Direttivo", verbale_tavolo: "Tavoli tematici", scheda: "Schede progetto", comunicazione: "Comunicazioni ufficiali" };
     return { name: XN[type] || F.name, rows, widths };
   }
   async function exportExcel(types) {
@@ -3161,6 +3588,58 @@ const LETTERA = (function () {
       el("button", { type: "button", class: "btn primary", id: "xl_go", onclick: () => { const t = chk.filter(c => c.checked).map(c => c.value); if (!t.length) { toast("Scegli almeno una tipologia.", "warn"); return; } close(); exportExcel(t); } }, "Scarica Excel"),
       el("button", { type: "button", class: "link", onclick: close }, "Annulla")));
     document.body.append(sh);
+  }
+
+  /* ============================================================ importazione di verbali già scritti (PDF, Word, LibreOffice)
+     Il testo viene letto sul dispositivo; le voci riconosciute riempiono il modulo, che si apre per il controllo prima del salvataggio.
+     Il file originale diventa il primo allegato (i PDF vengono uniti in coda al PDF del verbale). */
+  const VERBALI = ["verbale_assemblea", "verbale_direttivo", "verbale_tavolo"];
+  const TIPI_IMP = { verbale_assemblea: "Verbale dell'Assemblea", verbale_direttivo: "Verbale del Consiglio Direttivo", verbale_tavolo: "Resoconto di un Tavolo tematico" };
+  const ETICHETTE_IMP = { numero: "Numero", data: "Data", ora_inizio: "Inizio", ora_fine: "Chiusura", orario: "Orario", luogo: "Luogo", modalita: "Modalità", tipo: "Tipo", presidente: "Presiede", verbalizzante: "Verbalizza", referente: "Referente",
+    direttivo_presenti: "Direttivo presente", direttivo_assenti: "Direttivo assente", presenti: "Presenti", n_presenti: "N. presenti", assenti_giust: "Assenti giustificati", assenti_ingiust: "Assenti", componenti: "Partecipanti", altri: "Altri partecipanti", ospiti: "Ospiti", numero_legale: "Numero legale", odg: "Ordine del giorno", argomenti: "Argomenti", prossima: "Prossima seduta", decisioni: "Deliberazioni", svolgimento: "Svolgimento" };
+  function importaDialog() {
+    const tipi = VERBALI.filter(puoInterno);
+    if (!tipi.length) { toast("Solo i Coordinatori o gli operatori autorizzati possono importare verbali.", "warn"); return; }
+    const close = () => sh.remove();
+    const inp = el("input", { type: "file", id: "imp_file", class: "vh", accept: ".pdf,.docx,.odt,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,text/plain" });
+    const out = el("div", { class: "imp-out" });
+    const box = el("div", { class: "sheet msheet imp-sheet", role: "dialog", "aria-label": "Importa un verbale" },
+      el("b", {}, "Importa un verbale da PDF o Word"),
+      el("p", { class: "hint" }, "Scegli il verbale già scritto (PDF con testo, Word .docx o LibreOffice .odt). Il Gestionale legge il testo su questo dispositivo, riempie le voci che riconosce e allega il file originale. Prima di salvare potrai controllare e correggere tutto."),
+      el("label", { class: "btn primary", for: "imp_file", id: "imp_scegli" }, "Scegli il file"), inp, out,
+      el("button", { type: "button", class: "link", onclick: close }, "Annulla"));
+    const sh = el("div", { class: "sheet-bg", onclick: e => { if (e.target === sh) close(); } }, box);
+    document.body.append(sh);
+    inp.onchange = async () => {
+      const file = inp.files[0]; inp.value = ""; if (!file) return;
+      if (file.size > 15 * 1048576) { toast("File troppo pesante (massimo 15 MB).", "warn"); return; }
+      out.innerHTML = ""; out.append(el("p", { class: "hint" }, "Leggo «" + file.name + "»…"));
+      const sc = box.querySelector("#imp_scegli"); sc.textContent = "Scegli un altro file"; sc.className = "btn";
+      let r, letto;
+      try { letto = await IMPORTA.testo(file); r = IMPORTA.riconosci(letto.testo, file.name); }
+      catch (e) { out.innerHTML = ""; out.append(el("p", { class: "box warnbox" }, "⚠ " + (e.message || "Non riesco a leggere il file."))); return; }
+      const scansione = letto.tipo === "pdf" && letto.testo.replace(/\s+/g, "").length < 40;
+      let tipo = tipi.includes(r.tipo) ? r.tipo : tipi[0];
+      const sel = el("select", { id: "imp_tipo" }, tipi.map(k => el("option", { value: k, selected: k === tipo }, TIPI_IMP[k])));
+      const lista = el("div", { class: "imp-list" });
+      const draw = () => { lista.innerHTML = ""; const v = r.values; const ks = Object.keys(ETICHETTE_IMP).filter(k => v[k] !== undefined && v[k] !== "" && !(Array.isArray(v[k]) && !v[k].length));
+        if (!ks.length) { lista.append(el("p", { class: "hint" }, scansione ? "Il PDF non contiene testo (è una scansione o una foto): il file verrà allegato e le voci andranno compilate a mano." : "Nessuna voce riconosciuta: il file verrà allegato e le voci andranno compilate a mano.")); return; }
+        lista.append(el("p", { class: "hint" }, `Voci riconosciute (${ks.length}). Controllale nel modulo prima di salvare:`));
+        lista.append(el("dl", { class: "imp-dl" }, ks.flatMap(k => { let x = v[k];
+          if (Array.isArray(x)) x = x.map((it, i) => (i + 1) + ". " + (it.titolo || "")).join("  ·  "); else if (x === true) x = "sì"; else if (/^\d{4}-\d{2}-\d{2}$/.test(x)) x = fmtDate(x);
+          x = String(x); return [el("dt", {}, ETICHETTE_IMP[k]), el("dd", {}, x.length > 160 ? x.slice(0, 160) + "…" : x)]; }))); };
+      sel.onchange = () => { tipo = sel.value; r = IMPORTA.riconosci(letto.testo, file.name, tipo); draw(); };
+      draw();
+      out.innerHTML = "";
+      out.append(el("p", {}, el("b", {}, file.name), " · ", letto.tipo.toUpperCase(), scansione ? " · senza testo" : ` · ${letto.testo.length.toLocaleString("it-IT")} caratteri letti`),
+        el("label", { class: "lab", for: "imp_tipo" }, "Tipo di verbale"), sel, lista,
+        el("button", { type: "button", class: "btn primary", id: "imp_apri", onclick: async () => {
+          const buf = new Uint8Array(await file.arrayBuffer()), isPdf = letto.tipo === "pdf";
+          const att = { local: true, kind: isPdf ? "pdf" : "other", name: file.name, mime: file.type || (isPdf ? "application/pdf" : letto.tipo === "docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "application/octet-stream"), title: "Verbale originale – " + file.name.replace(/\.[^.]+$/, ""), desc: "File importato il " + new Date().toLocaleDateString("it-IT"), b64: UI.bytesToB64(buf) };
+          const values = { ...r.values, importato: `${file.name} – importato il ${new Date().toLocaleDateString("it-IT")}${S.settings.operatore?.nome ? " da " + S.settings.operatore.nome : ""}`, testo_originale: letto.testo.slice(0, 30000) };
+          close(); await openNew(tipo, undefined, true, values, "import", [att]);
+          toast("Controlla le voci riconosciute e completa il verbale, poi salvalo.", "ok"); } }, "Apri il verbale e controlla"));
+    };
   }
 
   /* ============================================================ eliminazione (solo Coordinatori) */
@@ -3492,12 +3971,13 @@ const LETTERA = (function () {
     main.append(el("div", { class: "new-docs" }, ORDER.interno.map(k => puoInterno(k)
       ? el("button", { class: "btn primary", onclick: () => openNew(k) }, "+ " + FORMS[k].name)
       : el("button", { class: "btn locked", disabled: true, title: "Riservato ai Coordinatori o agli operatori autorizzati" }, "🔒 " + FORMS[k].name))));
+    if (VERBALI.some(puoInterno)) main.lastChild.append(el("button", { type: "button", class: "btn", id: "btn-importa", onclick: importaDialog }, "⇪ Importa verbale (PDF o Word)"));
     if (connected()) main.lastChild.append(el("button", { type: "button", class: "btn xl-btn", onclick: () => excelDialog(ORDER.interno) }, "⬇ Excel"));
-    if (ok.length < ORDER.interno.length) main.append(el("p", { class: "box note-perm" }, "🔒 Verbali del Direttivo, resoconti dei Tavoli e schede progetto possono essere creati e modificati solo dai Coordinatori o dagli operatori che un Coordinatore ha autorizzato. Puoi consultarli e generarne il PDF."));
+    if (ok.length < ORDER.interno.length) main.append(el("p", { class: "box note-perm" }, "🔒 Verbali dell'Assemblea e del Direttivo, resoconti dei Tavoli e schede progetto possono essere creati e modificati solo dai Coordinatori o dagli operatori che un Coordinatore ha autorizzato. Puoi consultarli e generarne il PDF."));
     const its = S.items.filter(i => FORMS[i.type] && FORMS[i.type].group === "interno" && !FORMS[i.type].uscita);
     const loc = (await localDrafts()).filter(r => FORMS[r.type].group === "interno" && !FORMS[r.type].uscita).map(r => ({ id: r.id, type: r.type, ricevuto: (r.creato || "").slice(0, 10).split("-").reverse().join("/"), stato: "Da sincronizzare", nome: "", zona: "", oggetto: summaryOf(r), sortKey: "9" + r.creato }));
     const df = its.filter(daFirmare);
-    if (df.length) main.append(el("div", { class: "box firmabox" }, "✍ ", el("b", {}, df.length === 1 ? "1 documento attende la tua firma: " : df.length + " documenti attendono la tua firma: "), df.map((i, k) => [k ? ", " : "", el("button", { class: "link", onclick: () => openRecord(i.id) }, i.id)])));
+    if (df.length) main.append(el("div", { class: "box firmabox" }, "✍ ", el("b", {}, df.length === 1 ? "1 documento attende la tua firma: " : df.length + " documenti attendono la tua firma: "), df.flatMap((i, k) => [k ? ", " : "", el("button", { class: "link", onclick: () => openRecord(i.id) }, i.id)])));
     main.append(el("div", { class: "cards small" }, ORDER.interno.map(k => el("button", { class: "card" + (S.filters.type === k ? " sel" : ""), onclick: () => { S.filters.type = S.filters.type === k ? "" : k; renderHome(); } },
       el("span", { class: "card-t" }, FORMS[k].short), el("span", { class: "card-s" }, `${its.filter(i => i.type === k).length} in archivio`)))));
     renderTable(main, its, STATI.interno, loc);
@@ -3525,7 +4005,7 @@ const LETTERA = (function () {
           : el("button", { class: "btn locked", disabled: true, title: "Riservato ai Coordinatori o agli operatori autorizzati" }, "🔒 Nuova comunicazione ufficiale"),
         el("button", { class: "btn", type: "button", id: "btn-rubrica", onclick: () => rubricaDialog() }, "📇 Rubrica indirizzi"),
         connected() && !m ? el("button", { type: "button", class: "btn xl-btn", onclick: () => excelDialog(["comunicazione"]) }, "⬇ Excel") : null),
-      df.length ? el("div", { class: "box firmabox" }, "✍ ", el("b", {}, df.length === 1 ? "1 comunicazione attende la tua firma: " : df.length + " comunicazioni attendono la tua firma: "), df.map((i, k) => [k ? ", " : "", el("button", { class: "link", onclick: () => openRecord(i.id) }, i.id)])) : null);
+      df.length ? el("div", { class: "box firmabox" }, "✍ ", el("b", {}, df.length === 1 ? "1 comunicazione attende la tua firma: " : df.length + " comunicazioni attendono la tua firma: "), df.flatMap((i, k) => [k ? ", " : "", el("button", { class: "link", onclick: () => openRecord(i.id) }, i.id)])) : null);
     main.append(sec);
     if (m) { const list = el("div", { class: "mlist" }); mFilter([...loc, ...its], SF_COM).forEach(i => list.append(mCard(i, { icon: true }))); if (!its.length && !loc.length) list.append(el("p", { class: "empty" }, "Nessuna comunicazione ufficiale.")); main.append(list); }
     else renderTable(main, its, STATI.comunicazione, loc, SF_COM);
@@ -3545,6 +4025,7 @@ const LETTERA = (function () {
   function summaryOf(rec) {
     const v = rec.values || {}, F = FORMS[rec.type];
     if (rec.type === "verbale_direttivo") return `Verbale n. ${v.numero || ""} del ${fmtDate(v.data)}`;
+    if (rec.type === "verbale_assemblea") return `Assemblea – verbale n. ${v.numero || ""} del ${fmtDate(v.data)}`;
     if (rec.type === "verbale_tavolo") return `${v.tavolo === "Altro" ? v.tavolo_altro || "" : v.tavolo || ""} – ${fmtDate(v.data)}`;
     if (rec.type === "comunicazione") return `Comunicazione ${v.numero || "(numero al salvataggio)"} – ${String(v.oggetto || "").slice(0, 150)}`;
     let s = v[F.subjectField]; if (s && typeof s === "object") s = (s.sel || []).join(", ");
@@ -3559,7 +4040,7 @@ const LETTERA = (function () {
      registri una sola pratica anche se il salvataggio parte due volte. */
   const newToken = () => { const a = new Uint8Array(12); crypto.getRandomValues(a); return "G" + Array.from(a, b => b.toString(16).padStart(2, "0")).join(""); };
   const draftKey = (type, origine) => "nuovo:" + type + ":" + (origine || "Operatore");
-  async function openNew(type, origine, fresh, prefill, chiave) {
+  async function openNew(type, origine, fresh, prefill, chiave, allegati) {
     if (FORMS[type].group === "interno" && !puoInterno(type)) { toast("Solo i Coordinatori o gli operatori autorizzati possono creare questo documento.", "warn"); return; }
     const key = draftKey(type, origine) + (chiave ? ":" + chiave : "");
     if (fresh) await DB.del(key);
@@ -3568,6 +4049,7 @@ const LETTERA = (function () {
       rec = { id: "LOC-" + Date.now().toString(36), token: newToken(), type, values: {}, riservato: {}, atts: [], sigs: {}, note: [], creato: new Date().toISOString(), meta: { stato: "Da sincronizzare", origine: origine || "Operatore", version: 0, pending: true } };
       if (origine === "Direttivo") { rec.values = { nome: S.settings.operatore?.nome || "", consenso_dati: true, data_firma: UI.today() }; rec.inserito_da = S.settings.operatore?.nome || ""; }
       if (prefill) rec.values = { ...rec.values, ...prefill };
+      if (allegati) rec.atts = allegati;
     }
     cur = { rec, F: FORMS[type], isNew: true, origine: origine || "Operatore", editCitizen: true, direttivo: origine === "Direttivo", draftKey: key, ripreso: ripreso && rec.salvato, chiave };
     renderRecord();
@@ -3673,6 +4155,7 @@ const LETTERA = (function () {
     if (!citizen && !cur.isNew) panel.after(firmePanel(rec));
     if (F.key === "comunicazione" && !cur.isNew) main.querySelector(".firme-sec").after(comPanel(rec));
     if (F.key === "comunicazione" && !cur.store.readonly) rubricaPicker(formBox);
+    ["importato", "testo_originale"].forEach(k => { const x = formBox.querySelector(`.field[data-id="${k}"] input, .field[data-id="${k}"] textarea`); if (x) { x.readOnly = true; x.classList.add("ro"); } });
     if (F.key === "comunicazione") { const n = formBox.querySelector('.field[data-id="numero"] input'); if (n) { n.readOnly = true; n.placeholder = "assegnato al salvataggio"; n.title = "Numero di protocollo assegnato dall'archivio"; } }
     if (F.key === "comunicazione" && !cur.isNew) formBox.before(...[panel, main.querySelector(".firme-sec"), main.querySelector(".com-sec")].filter(Boolean));   // prima lo stato, le firme e l'invio, poi il testo
     if (citizen && !cur.isNew && !rec.id.startsWith("LOC-")) panel.after(fascicoloPanel(rec));
@@ -3834,7 +4317,7 @@ const LETTERA = (function () {
         voci.sort((a, b) => a.k.localeCompare(b.k)); meta.fascicolo = { capofila: fz.capofila, collegate: fz.collegate, storico: fz.storico, voci }; }
       if (F.group === "interno" && !cur.isNew) { meta.firme = (rec.firme || []).map(x => ({ ...x, img: rec.firmeImg?.[x.fileId] })); meta.firmeAttese = (rec.meta?.coordinatori || []).filter(n => !(rec.firme || []).some(x => x.nome === n)); }
       const sigs = { ...cur.store.sigs };
-      if (rec.type === "verbale_direttivo" && !sigs.firma && (meta.firme || []).length) {     // il Coordinatore che presiede: usa la sua firma grafica, se ha firmato
+      if (["verbale_direttivo", "verbale_assemblea"].includes(rec.type) && !sigs.firma && (meta.firme || []).length) {     // il Coordinatore che presiede: usa la sua firma grafica, se ha firmato
         const pres = String(cur.store.values.presidente || "").toLowerCase();
         const x = meta.firme.find(f => f.img && pres && pres.includes(f.nome.toLowerCase().split(" ").pop()));
         if (x) sigs.firma = x.img;
@@ -4093,8 +4576,8 @@ const LETTERA = (function () {
      stato a riquadri, sezioni a scomparsa e nuovi moduli compilati a passi. */
   const isM = () => matchMedia("(max-width:700px)").matches;
   const ic = (name, fill) => el("span", { class: "ms" + (fill ? " fill" : ""), "aria-hidden": "true" }, name);
-  const PLUR = { comunicazione: "Comunicazioni", segnalazione: "Segnalazioni", proposte: "Proposte", rifiuti: "Rifiuti", adesione: "Adesioni", albo: "Albo", verbale_direttivo: "Verbali", verbale_tavolo: "Tavoli", scheda: "Schede" };
-  const ICON = { comunicazione: "edit_note", segnalazione: "campaign", proposte: "edit_note", rifiuti: "delete", adesione: "person", albo: "groups", verbale_direttivo: "description", verbale_tavolo: "groups", scheda: "assignment" };
+  const PLUR = { comunicazione: "Comunicazioni", segnalazione: "Segnalazioni", proposte: "Proposte", rifiuti: "Rifiuti", adesione: "Adesioni", albo: "Albo", verbale_assemblea: "Assemblee", verbale_direttivo: "Verbali", verbale_tavolo: "Tavoli", scheda: "Schede" };
+  const ICON = { comunicazione: "edit_note", segnalazione: "campaign", proposte: "edit_note", rifiuti: "delete", adesione: "person", albo: "groups", verbale_assemblea: "groups", verbale_direttivo: "description", verbale_tavolo: "groups", scheda: "assignment" };
   const colT = (k) => (typeof MAPPA !== "undefined" && MAPPA.colori[k]) || "#8b1e1e";
   const ddmm = (r) => { const m = String(r || "").match(/^(\d\d)\/(\d\d)/); return m ? m[1] + "/" + m[2] : ""; };
 
@@ -4165,10 +4648,11 @@ const LETTERA = (function () {
 
   async function mInterni(main) {
     const f = S.filters;
-    main.append(el("div", { class: "mtitle" }, el("h2", {}, "Documenti interni"), el("span", {}, "Verbali, resoconti e schede progetto")));
+    main.append(el("div", { class: "mtitle" }, el("h2", {}, "Documenti interni"), el("span", {}, "Verbali dell'Assemblea e del Direttivo, resoconti e schede progetto")));
     main.append(el("div", { class: "mlab" }, "Crea nuovo"), el("div", { class: "mrows" }, ORDER.interno.map(k => puoInterno(k)
       ? el("button", { type: "button", class: "mrow", onclick: () => openNew(k) }, el("span", { class: "mrow-ic" }, ic("add")), el("span", { class: "mrow-t" }, FORMS[k].name), ic("chevron_right"))
-      : el("div", { class: "mrow off" }, el("span", { class: "mrow-ic" }, ic("lock")), el("span", { class: "mrow-t" }, FORMS[k].name, el("small", {}, "Solo Coordinatori o autorizzati"))))));
+      : el("div", { class: "mrow off" }, el("span", { class: "mrow-ic" }, ic("lock")), el("span", { class: "mrow-t" }, FORMS[k].name, el("small", {}, "Solo Coordinatori o autorizzati")))),
+      VERBALI.some(puoInterno) ? el("button", { type: "button", class: "mrow", id: "mbtn-importa", onclick: importaDialog }, el("span", { class: "mrow-ic" }, ic("picture_as_pdf")), el("span", { class: "mrow-t" }, "Importa un verbale", el("small", {}, "Da un file PDF o Word già compilato")), ic("chevron_right")) : null));
     const its = S.items.filter(i => FORMS[i.type] && FORMS[i.type].group === "interno" && !FORMS[i.type].uscita);
     const loc = (await localDrafts()).filter(r => FORMS[r.type].group === "interno" && !FORMS[r.type].uscita).map(r => ({ id: r.id, type: r.type, ricevuto: (r.creato || "").slice(0, 10).split("-").reverse().join("/"), stato: "Da sincronizzare", oggetto: summaryOf(r), sortKey: "9" + r.creato }));
     const df = its.filter(daFirmare);
@@ -4196,7 +4680,8 @@ const LETTERA = (function () {
       el("div", { class: "mlab" }, "Da modulo cartaceo"),
       el("div", { class: "mrows" }, ORDER.cittadini.map(k => row("description", FORMS[k].name, "Ricopia il modulo e allega la foto", () => openNew(k, "Cartaceo / punto di ascolto")))),
       el("div", { class: "mlab" }, "Documento interno"),
-      el("div", { class: "mrows" }, ORDER.interno.map(k => row("add", FORMS[k].name, puoInterno(k) ? "" : "Solo Coordinatori o autorizzati", () => openNew(k), !puoInterno(k))))));
+      el("div", { class: "mrows" }, ORDER.interno.map(k => row("add", FORMS[k].name, puoInterno(k) ? "" : "Solo Coordinatori o autorizzati", () => openNew(k), !puoInterno(k))),
+        row("picture_as_pdf", "Importa un verbale", VERBALI.some(puoInterno) ? "Da un file PDF o Word già compilato" : "Solo Coordinatori o autorizzati", importaDialog, !VERBALI.some(puoInterno)))));
     document.body.append(sh);
   }
 
